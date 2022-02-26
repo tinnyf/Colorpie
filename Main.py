@@ -83,4 +83,10 @@ from Events import cp_events
 bot.add_cog(cp_council(bot))
 bot.add_cog(cp_events(bot))
 bot.add_cog(cp_NewCouncil(bot))
-bot.run('ODQwNjAxNTQ0NDk5MTM0NDg2.YJalMQ.btX1L8Y3a7Xx9FlJ-teZPXhyZc8')
+
+
+with open("token.txt") as f:
+    token = f.read()
+    
+print(token)
+bot.run(token)
