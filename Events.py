@@ -6,7 +6,8 @@ import typing
 import asyncio
 import datetime
 from datetime import date, time, datetime 
-from discord.ext.commands import bot 
+from discord.ext.commands import bot
+from discord_components import DiscordComponents, ComponentsBot, Button, Select, SelectOption
 # -*- coding: utf-8 -*-
 
 class cp_events(commands.Cog):
@@ -231,6 +232,29 @@ class cp_events(commands.Cog):
                 else:
                     await ctx.send("You don't have permission to edit this entry!")
 
+    @event.command()
+    async def join(self, ctx):
+        subcomponents = []
+        for event, contents in self.eventlist.items():
+           subcomponent = SelectOption(
+            label = event , emoji = self.bot.get_emoji(947539895071670302), description = "Select me!", value = event 
+           )
+           subcomponents.append(subcomponent)
+        await ctx.send(
+            "Pick some events to join!",
+            components = [Select(options = subcomponents, max_values = 1, id = "event_selector")]
+            )
+        while True:
+            interaction = await self.bot.wait_for("select_option", check = lambda i: i.custom_id == "event_selector")
+            for value in interaction.values:
+                self.eventlist[value]["Players"].append(ctx.author.id)
+                self.save_json_dict(self.eventlist)
+            await interaction.send("Selected some options!")
+            
+                
+                    
+        
+            
 
 
 

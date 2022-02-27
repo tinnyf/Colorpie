@@ -10,8 +10,10 @@ from discord.ext import commands, tasks
 import datetime
 from datetime import datetime, time, date
 import emojis
+from discord_components import DiscordComponents, ComponentsBot, Button, Select, SelectOption
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=['~','-'], intents=intents)
+DiscordComponents(bot)
 council_channels = ['816153720651251722']
 admin_users = [679680827831222310, 129628193811464193, 842106129734696992, ]
 voter_roles = [776142371918184479, 776142246008455188]
@@ -88,5 +90,4 @@ bot.add_cog(cp_NewCouncil(bot))
 with open("token.txt") as f:
     token = f.read()
     
-print(token)
 bot.run(token)
