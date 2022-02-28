@@ -11,11 +11,16 @@ import datetime
 from datetime import datetime, time, date
 import emojis
 from discord_components import DiscordComponents, ComponentsBot, Button, Select, SelectOption
+from Council import cp_council
+from CommandHandler import CommandHandler
+from FactionHandler import FactionHandler
+from Events import cp_events
+
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=['~','-'], intents=intents)
 DiscordComponents(bot)
 council_channels = ['816153720651251722']
-admin_users = [679680827831222310, 129628193811464193, 842106129734696992, ]
+admin_users = [679680827831222310, 129628193811464193, 842106129734696992,]
 voter_roles = [776142371918184479, 776142246008455188]
 
 
@@ -64,30 +69,16 @@ async def mute(ctx, member: SmartMember, time=None, *, reason=None):
         unmute_embed = discord.Embed(title="Mute over!", description=f"{ctx.author.mention} muted to {member.mention} for {reason} is over after {time}")
         await ctx.send(embed=unmute_embed)
 
-
-
-
-
-
-# import Updater 
-# from Updater import db_updates
-# import General
-# from General import db_general
-import Council
-from Council import cp_council
-import NewCouncil
-from NewCouncil import cp_NewCouncil
-import Events
-from Events import cp_events
 # #Ver = 1.1
-# 
+#
 # bot.add_cog(db_updates(bot))
 bot.add_cog(cp_council(bot))
 bot.add_cog(cp_events(bot))
-bot.add_cog(cp_NewCouncil(bot))
+bot.add_cog(CommandHandler(bot))
+bot.add_cog(FactionHandler(bot))
 
 
 with open("token.txt") as f:
     token = f.read()
-    
+
 bot.run(token)
