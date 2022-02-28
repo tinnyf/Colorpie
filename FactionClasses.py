@@ -13,6 +13,7 @@ class FactionMember():
         for faction in source:
             if member.id in source[faction]["members"]:
                 return faction
+
         return False ## not sure what to do about it returning string or bool. Is that an issue?
 
     def has_permission(source, member, permission):
