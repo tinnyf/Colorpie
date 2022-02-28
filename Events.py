@@ -232,6 +232,31 @@ class cp_events(commands.Cog):
                 else:
                     await ctx.send("You don't have permission to edit this entry!")
 
+
+    
+    
+    @event.command()
+    async def leave(self, ctx):
+        subcomponents = []
+        for event, contents in self.eventlist.items():
+            if ctx.author.id in contents["Players"]:
+               subcomponent = SelectOption(
+                   label = event , emoji = self.bot.get_emoji(947539895071670302), description = "Select me!", value = event 
+               )
+               subcomponents.append(subcomponent)
+        sent_message = await ctx.send(
+        "Pick some events to leave!",
+            components = [Select(options = subcomponents, max_values = 1, id = "event_leaver")]
+        )
+        while True:
+            interaction = await self.bot.wait_for("select_option", check = lambda i: (i.custom_id == "event_leaver" and i.message.id == sent_message.id))
+            for value in interaction.values:
+                self.eventlist[value]["Players"].remove(ctx.author.id)
+                self.save_json_dict(self.eventlist)
+            await interaction.send("Selected some options!")
+
+                    
+
     @event.command()
     async def join(self, ctx):
         subcomponents = []
@@ -240,12 +265,12 @@ class cp_events(commands.Cog):
             label = event , emoji = self.bot.get_emoji(947539895071670302), description = "Select me!", value = event 
            )
            subcomponents.append(subcomponent)
-        await ctx.send(
+        sent_message = await ctx.send(
             "Pick some events to join!",
             components = [Select(options = subcomponents, max_values = 1, id = "event_selector")]
             )
         while True:
-            interaction = await self.bot.wait_for("select_option", check = lambda i: i.custom_id == "event_selector")
+            interaction = await self.bot.wait_for("select_option", check = lambda i: (i.custom_id == "event_selector" and i.message.id == sent_message.id))
             for value in interaction.values:
                 self.eventlist[value]["Players"].append(ctx.author.id)
                 self.save_json_dict(self.eventlist)
