@@ -74,7 +74,7 @@ class cp_NewCouncil(commands.Cog):
             "Name": name,
             "Titles": {},
             "Description": "Description would go here",
-            "perks": []
+            "perks": [],
         }
         self.save_json_dict(self.faction_dict, "Factions") #Is it worth binding faction_dict with the key "Factions" somewhere?
         await ctx.send(f"Created a new faction with name: {name}")
