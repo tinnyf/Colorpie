@@ -19,7 +19,7 @@ class CpUser:
         self.id = id
         self.name = name
 
-    def get_faction(self, source, member): #Source should always be the same, but I'm worried about calling for factiondict in here since it doesn't exist... is that stupid?
+    def get_faction(source, member): #Source should always be the same, but I'm worried about calling for factiondict in here since it doesn't exist... is that stupid?
         for faction in source:
             if member.id in source[faction]["members"]:
                 return faction
@@ -27,7 +27,7 @@ class CpUser:
 
     def has_permission(source, member, permission):
         try:
-            faction = FactionMember.get_faction(source, member)
+            faction = CpUser.get_faction(source, member)
             return source[faction]["members"][member.id]["Permissions"][permission]
         except KeyError:
             return False

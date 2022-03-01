@@ -15,7 +15,7 @@ class CommandHandler(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.faction_handler = FactionHandler
+        self.faction_handler = FactionHandler(bot)
 
     @commands.command()
     async def found(self, ctx, name):
