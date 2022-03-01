@@ -5,7 +5,7 @@ import json
 import typing
 import asyncio
 import datetime
-from datetime import date, time, datetime 
+from datetime import date, time, datetime
 from discord.ext.commands import bot
 from discord_components import DiscordComponents, ComponentsBot, Button, Select, SelectOption
 # -*- coding: utf-8 -*-
@@ -20,9 +20,9 @@ class cp_events(commands.Cog):
                 self.eventlist = json.load(json_file_r0)
             except json.decoder.JSONDecodeError:
                 self.eventlist = {}
-                
+
     async def element(self, ctx, bot, component): #This whole function should handle input data
-        def edit_response(message): 
+        def edit_response(message):
             return message.author == ctx.author and message.channel == ctx.channel
         try:
             response = await self.bot.wait_for('message', check =edit_response, timeout = 120.0)
@@ -35,7 +35,7 @@ class cp_events(commands.Cog):
                 await component.delete()
             else:
                 return (response.content)
-            
+
     def save_json_dict(self, dict):
         with open("src/data/events.json", "w") as json_file:
             json.dump(dict, json_file)
@@ -92,7 +92,7 @@ class cp_events(commands.Cog):
         UI = await ctx.send(embed=embed)
         name = await self.element(ctx, bot, UI)
         embed.set_field_at(0, name = "event name", value = name)
-        dt = datetime.now() 
+        dt = datetime.now()
         dt = dt.strftime("%d %b %y %H:%M:%S")
         embed.add_field(name = "Time", value = "Please add a date and time in the format 'date month year H:M:S'. For example, for now, write %s. Please note that times should be UTC. Should be." %(dt))
         await UI.edit(embed=embed)
@@ -116,7 +116,7 @@ class cp_events(commands.Cog):
         await UI.add_reaction('❌')
         embed.set_footer(text = "Confirm event creation?")
         n=1
-        while n != 2 : 
+        while n != 2 :
             try:
                 reaction, user = await self.bot.wait_for('reaction_add',timeout = 60)
             except asyncio.TimeoutError:
@@ -133,14 +133,14 @@ class cp_events(commands.Cog):
                         self.save_json_dict(self.eventlist)
                         await ctx.send("Event added!")
                         await reaction.message.delete(delay = 3)
-                        return True 
+                        return True
                     elif str(k.emoji) == '❌':
                         await ctx.send ("Event deleted!")
                         await reaction.message.delete(delay = 2)
                         return False
-                    
+
     @event.command(aliases = ["l, see, s, view"])
-    async def list (self, ctx): 
+    async def list (self, ctx):
         if len(self.eventlist) == 0:
             return
         n=0
@@ -169,7 +169,7 @@ class cp_events(commands.Cog):
             await UI.add_reaction('➡')
             cl=1
             p = 0
-            while cl != 2 : 
+            while cl != 2 :
                 try:
                     reaction, user = await self.bot.wait_for('reaction_add',timeout = 60)
                 except asyncio.TimeoutError:
@@ -202,9 +202,9 @@ class cp_events(commands.Cog):
                                         await reaction.remove(ctx.author)
                                     else:
                                         n = n-1
-                                        cl = 2 
+                                        cl = 2
                                         await reaction.remove(ctx.author)
-                                        break 
+                                        break
                                 elif str(k.emoji) =='➡':
                                     if n + 1 == len(self.eventlist):
                                         await ctx.send('No more entries in this direction')
@@ -233,15 +233,15 @@ class cp_events(commands.Cog):
                     await ctx.send("You don't have permission to edit this entry!")
 
 
-    
-    
+
+
     @event.command()
     async def leave(self, ctx):
         subcomponents = []
         for event, contents in self.eventlist.items():
             if ctx.author.id in contents["Players"]:
                subcomponent = SelectOption(
-                   label = event , emoji = self.bot.get_emoji(947539895071670302), description = "Select me!", value = event 
+                   label = event , emoji = self.bot.get_emoji(947539895071670302), description = "Select me!", value = event
                )
                subcomponents.append(subcomponent)
         sent_message = await ctx.send(
@@ -249,20 +249,20 @@ class cp_events(commands.Cog):
             components = [Select(options = subcomponents, max_values = 1, id = "event_leaver")]
         )
         while True:
-            interaction = await self.bot.wait_for("select_option", check = lambda i: (i.custom_id == "event_leaver" and i.message.id == sent_message.id))
+            interaction = await self.bot.wait_for("select_option", check = lambda i: (i.user.id == ctx.author.id and i.custom_id == "event_leaver" and i.message.id == sent_message.id))
             for value in interaction.values:
                 self.eventlist[value]["Players"].remove(ctx.author.id)
                 self.save_json_dict(self.eventlist)
-            await interaction.send("Selected some options!")
+            await interaction.send(f"Left the {interaction.values} event/s")
 
-                    
+
 
     @event.command()
     async def join(self, ctx):
         subcomponents = []
         for event, contents in self.eventlist.items():
            subcomponent = SelectOption(
-            label = event , emoji = self.bot.get_emoji(947539895071670302), description = "Select me!", value = event 
+            label = event , emoji = self.bot.get_emoji(947539895071670302), description = "Select me!", value = event
            )
            subcomponents.append(subcomponent)
         sent_message = await ctx.send(
@@ -270,22 +270,22 @@ class cp_events(commands.Cog):
             components = [Select(options = subcomponents, max_values = 1, id = "event_selector")]
             )
         while True:
-            interaction = await self.bot.wait_for("select_option", check = lambda i: (i.custom_id == "event_selector" and i.message.id == sent_message.id))
+            interaction = await self.bot.wait_for("select_option", check = lambda i: (i.user == ctx.author and i.custom_id == "event_selector" and i.message.id == sent_message.id))
             for value in interaction.values:
                 self.eventlist[value]["Players"].append(ctx.author.id)
                 self.save_json_dict(self.eventlist)
             await interaction.send("Selected some options!")
-            
-                
-                    
-        
-            
 
 
 
 
 
-            
+
+
+
+
+
+
 ##    @tasks.loop(seconds = 300.1)
 ##    async def eventchecker(self):
 ##        guild = self.bot.get_guild(758428574905925632)
@@ -321,20 +321,20 @@ class cp_events(commands.Cog):
 ##            del self.eventlist[event]
 ##            self.save_json_dict(self.eventlist)
 ##
-##        
 ##
-##    
+##
+##
 ##    @eventchecker.before_loop
 ##    async def before_eventchecker(self):
 ##        print('waiting...')
 ##        await self.bot.wait_until_ready()
 
-  
 
-                    
 
-        
-    
+
+
+
+
 ##    @commands.check(commands.dm_only())
 ##    @commands.command(aliases = ["f", "fuzzy"])
 ##    async def Fuzzy(self, ctx, *, text):
@@ -359,12 +359,8 @@ class cp_events(commands.Cog):
 ##                        SEND = await printChannel.send(embed=embed)
 ##                        await UI.delete(delay = 3)
 ##                        checkChannel.send("Confirmed")
-##                        return True 
+##                        return True
 ##                    elif str(k.emoji) == '❌':
 ##                        await checkChannel.send("Deleted!")
 ##                        await UI.delete(delay = 2)
 ##                        return False
-                                                                                                                              
-        
-        
-        
