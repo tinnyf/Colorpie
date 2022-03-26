@@ -18,10 +18,15 @@ from Events import cp_events
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=['~','-'], intents=intents)
-DiscordComponents(bot)
 council_channels = ['816153720651251722']
 admin_users = [679680827831222310, 129628193811464193, 842106129734696992,]
 voter_roles = [776142371918184479, 776142246008455188]
+
+@bot.event
+async def on_member_remove(member):
+    channel = bot.get_guild(695401740761301056).get_channel(695755815612710982)
+    await channel.send(f"Goodbye {member.name}! It's been a pleasure!")
+
 
 
 @bot.event

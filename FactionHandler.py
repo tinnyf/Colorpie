@@ -10,76 +10,93 @@ from cp_converters import SmartMember
 import datetime
 from datetime import date, time, datetime
 from discord.ext.commands import bot
-from CpUser import CpUser
+from Player import Player
+from Faction import Faction
 from discord_components import DiscordComponents, ComponentsBot, Button, Select, SelectOption
+import pickle
 
-master_role = 776142246008455188
-guild_id = 695401740761301056
 
 class FactionHandler(commands.Cog):
-    file_locations = {
-        "Factions": "src/data/faction.json",
-    }
 
     def __init__(self, bot):
         self.bot = bot
-        self.factions = self.read_json("Factions") #Possibly the issue is that this is static?
+        self.file_locations = {
+            "Factions": "src/data/factions",
+            "Lore": "src/data/lore",
+            "Daily": "src/data/daily"
+        }
+        try:
+            self.factions = self.read_pickle("Factions")
+        except EOFError:
+            self.factions = []
+        self.lore = self.read_pickle("Lore")
+        try:
+            self.daily = self.read_pickle(self.file_locations["Daily"])
+        except EOFError:
+            self.daily = []
 
-    def read_json(self, location):
-        with open(self.file_locations[location], "r") as json_file_r0:
-            try:
-                return json.load(json_file_r0)
-            except json.decoder.JSONDecodeError:
-                return {}
+    def read_pickle(self, location):
+        with open(location, "rb") as f:
+            return pickle.load(f)
 
-    def get_role_from_id(self, role_id):
-        return (self.bot.get_guild(guild_id)).get_role(role_id)
+    def save_pickle(self, data, location):
+        with open(location, "wb") as f:
+            pickle.dump(data, f)
 
-    def save_json_dict(self, dict, location):
-        with open(self.file_locations[location], "w") as json_file:
-            json.dump(dict, json_file)
-
-    def interaction_check(interaction):
-        return interaction.user == ctx.author and i.message.id == sent_message.id
-
-    async def invite_process(self, invitee, faction):
-        await invitee.create_dm()
-        await invitee.dm_channel.send(f"You've recieved an invite to faction: {faction}",
-        components = [
-            Button(Label = "Accept", style = 3, id = "AcceptButton"),
-            Button(Label = "Refuse", style = 4, id = "RefuseButton")
-        ])
-        interaction = self.bot.wait_for("button_click", check = interaction_check(i))
-        if interaction.custom_id == "AcceptButton":
-            #DoAcceptStuff
-            await ctx.send("You accepted this invite!")
-        if interaction.custom_id == "RefuseButton":
-            #DoRefuseStuff
-            await ctx.send("You rejected this invite!")
-
-
-
+    def get_factions(self):
+        return self.factions
 
     def found(self, name):
-        dict_contents = {}
-        self.factions[name] = {
-            "Members": {},
-            "Emoji": False,
-            "Name": name,
-            "Titles": {},
-            "Description": "Description would go here",
-            "perks": [],
-        }
-        self.save_json_dict(self.factions, "Factions")
+        self.factions.append(Faction(name))
+        self.save_pickle(self.factions, "Factions")
         return f"Created a new faction with name: {name}"
 
-    async def invite(self, ctx, invited):
-        if CpUser.has_permission(self.factions, ctx.author, "Send Invites"): #Currently factions doesn't exist in the right space
-            await self.invite_process(invited, CpUser.get_faction)
-        elif self.get_role_from_id(master_role) in ctx.author.roles:
-            await self.faction_select(ctx)
-        else:
-            return "You don't have permission to invite someone to your faction."
+    def register(self, word, text):
+        try:
+            self.lore[word.lower()] = text
+            self.save_pickle(self.lore, "Lore")
+        except AttributeError as e:
+            lore = {}
+            lore[word.lower()] = text
+            print(text)
+            self.save_pickle(lore,"Lore")
+
+    def discover(self, word):
+        return self.lore[word.lower()]
+
+    def get_permissions(self, title, faction_id):
+        return get_faction_from_id(faction_id).get_permissions(title)
+
+    def get_faction_from_id(self, faction_id):
+        for faction in factions:
+            if faction_id == faction.get_id():
+                return faction
+
+    def daily_data(self):
+         print(len(self.daily))
+         amount, text = random.choice(list(self.daily))
+         return amount, text
+
+    def get_dailys(self):
+        return(self.daily)
+
+    def daily_create(self, lst):
+        try:
+            self.daily.append(lst)
+            self.save_pickle(self.daily, self.file_locations["Daily"])
+        except AttributeError as e:
+            daily = []
+            daily.append(lst)
+            print(text)
+            self.save_pickle(self.daily, self.file_locations["Daily"])
+
+    def daily_remove(self, lst):
+        self.daily.remove(lst)
+        self.save_pickle(self.daily, self.file_locations["Daily"])
+
+    def print_daily(self):
+        print(self.daily)
+
 
 ## test for functionality of ctx.invoked_with
 ##   @commands.command(aliases = ["ping"])

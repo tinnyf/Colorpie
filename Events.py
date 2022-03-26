@@ -59,9 +59,13 @@ class cp_events(commands.Cog):
         for event in self.eventlist:
             PlayerNeat = []
             for player in self.eventlist[event]["Players"]:
-                player = guild.get_member(player)
-                player= player.name
-                PlayerNeat.append(player)
+                try:
+                    player = guild.get_member(player)
+                    player= player.name
+                    PlayerNeat.append(player)
+                except AttributeError:
+                    pass
+                    #Needs to remove
             PlayerNeat = " ".join(PlayerNeat)
             TimeDelta = (datetime.strptime(self.eventlist[event]['Date'], "%d %b %y %H:%M:%S")) - datetime.now()
             text = f"Start time: {self.eventlist[event]['Date']}. \n **List of players: {(PlayerNeat)}**. \n Starts in: {TimeDelta}"
