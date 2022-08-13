@@ -13,7 +13,6 @@ from discord.ext.commands import bot
 from Player import Player
 from Faction import Faction
 from Vote import Vote
-from discord_components import DiscordComponents, ComponentsBot, Button, Select, SelectOption
 import pickle
 
 class VoteHandler(commands.Cog):
@@ -51,6 +50,13 @@ class VoteHandler(commands.Cog):
         self.save_pickle(self.votes, self.file_locations["Votes"])
         return "Created a new vote!"
 
+    def get_election_from_value(self,value): #Uses Label as value?
+        for vote in self.votes:
+            if vote.name == value:
+                return vote
+
+    def get_option_from_value(self, election, value):
+        return election.get_options()[value]
 
     def add_option(self, election, option, componentdict):
         election.add_option(option, componentdict)
@@ -62,11 +68,6 @@ class VoteHandler(commands.Cog):
 
     def get_emoji(self, election):
         return election.get_emoji()
-
-    def get_option_from_name(self, election, value: int):
-        print(election.get_options())
-        value = int(value)
-        return election.get_options()[value]
 
     def remove_option(self, election, option):
         election.remove_option(option)

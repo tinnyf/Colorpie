@@ -12,7 +12,6 @@ from datetime import date, time, datetime
 from discord.ext.commands import bot
 from Player import Player
 from Faction import Faction
-from discord_components import DiscordComponents, ComponentsBot, Button, Select, SelectOption
 import pickle
 
 
@@ -30,10 +29,6 @@ class FactionHandler(commands.Cog):
         except EOFError:
             self.factions = []
         self.lore = self.read_pickle("Lore")
-        try:
-            self.daily = self.read_pickle(self.file_locations["Daily"])
-        except EOFError:
-            self.daily = []
 
     def read_pickle(self, location):
         with open(location, "rb") as f:
@@ -46,10 +41,46 @@ class FactionHandler(commands.Cog):
     def get_factions(self):
         return self.factions
 
-    def found(self, name):
-        self.factions.append(Faction(name))
+    def get_role_id(self, faction_id):
+        return self.get_faction_from_id(faction_id).get_role_id()
+
+    def add_member(self, member_id, faction_id):
+        self.get_faction_from_id(faction_id).add_member(member_id)
+
+    def found(self, name, role_id):
+        self.factions.append(Faction(name, role_id))
         self.save_pickle(self.factions, "Factions")
         return f"Created a new faction with name: {name}"
+
+    def get_permissions(self, title, faction_id):
+        return self.get_faction_from_id(faction_id).get_permissions(title)
+
+    def get_faction_from_id(self, faction_id):
+        return self.factions[faction_id]
+
+    def add_shop_item(self, faction_id, item, values):
+        self.get_faction_from_id(faction_id).add_shop_item(item, values)
+        self.save_pickle(self.factions, "Factions")
+
+    def add_perk(self, faction_id, perk):
+        self.get_faction_from_id(faction_id).add_perk(perk)
+        self.save_pickle(self.factions, "Factions")
+
+    def add_member(self, faction_id, player_id):
+        self.get_faction_from_id(faction_id).add_member(player_id)
+        self.save_pickle(self.factions, "Factions")
+
+    def remove_perk(self, faction_id, perk):
+        self.get_faction_from_id(faction_id).remove_perk(perk)
+        self.save_pickle(self.factions, "Factions")
+
+    def set_emoji(self, emoji_id):
+        self.get_faction_from_id(faction_id).set_emoji(emoji_id)
+        self.save_pickle(self.factions, "Factions")
+
+    def set_name(self, name):
+        self.get_faction_from_id(faction_id).set_name(name)
+        self.save_pickle(self.factions, "Factions")
 
     def register(self, word, text):
         try:
@@ -64,38 +95,22 @@ class FactionHandler(commands.Cog):
     def discover(self, word):
         return self.lore[word.lower()]
 
-    def get_permissions(self, title, faction_id):
-        return get_faction_from_id(faction_id).get_permissions(title)
 
-    def get_faction_from_id(self, faction_id):
-        for faction in factions:
-            if faction_id == faction.get_id():
-                return faction
 
-    def daily_data(self):
-         print(len(self.daily))
-         amount, text = random.choice(list(self.daily))
-         return amount, text
 
-    def get_dailys(self):
-        return(self.daily)
 
-    def daily_create(self, lst):
-        try:
-            self.daily.append(lst)
-            self.save_pickle(self.daily, self.file_locations["Daily"])
-        except AttributeError as e:
-            daily = []
-            daily.append(lst)
-            print(text)
-            self.save_pickle(self.daily, self.file_locations["Daily"])
 
-    def daily_remove(self, lst):
-        self.daily.remove(lst)
-        self.save_pickle(self.daily, self.file_locations["Daily"])
 
-    def print_daily(self):
-        print(self.daily)
+
+
+
+
+
+
+
+
+
+
 
 
 ## test for functionality of ctx.invoked_with

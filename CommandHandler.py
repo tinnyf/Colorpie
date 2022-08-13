@@ -1,22 +1,25 @@
 import discord
+from discord import app_commands
 import discord.ext
 from discord.ext import commands, tasks
 import typing
 import asyncio
 from discord.ext.commands import Bot, Context
-from discord_components import DiscordComponents, ComponentsBot, Button, Select, SelectOption
 from Player import Player
 from FactionHandler import FactionHandler
 from PlayerHandler import PlayerHandler
 from VoteHandler import VoteHandler
+from DailyHandler import DailyHandler
+from Integrations import Integrations
 import cp_converters
 from cp_converters import SmartMember
 import random
 import datetime
 import collections
 from datetime import datetime as dt
-class CommandHandler(commands.Cog):
+GUILD_ID = 695401740761301056
 
+class CommandHandler(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -25,6 +28,8 @@ class CommandHandler(commands.Cog):
         self.MASTER_ROLE = 776142246008455188
         self.player_handler = PlayerHandler(bot)
         self.vote_handler = VoteHandler(bot)
+        self.daily_handler = DailyHandler(bot, self.player_handler)
+        self.integrations = Integrations(bot)
         self.DISCOVER_ERRORS = [
         "That's a story for another time...",
         "I don't remember that one. Perhaps it's buried in the sand.",
@@ -51,15 +56,69 @@ class CommandHandler(commands.Cog):
         ]
         self.runes = ["Stiya", "Lana", "Kviz", "Sul", "Tuax", "Yol",
         "Min", "Thark", "Set", "Ged", "Dorn", "Lae"]
+        self.ctx_menu = discord.app_commands.ContextMenu(
+        name = 'Give Relics',
+        callback = self.give_relics_callback
+        )
+        self.bot.tree.add_command(self.ctx_menu)
+
+
+    async def give_relics_callback(self, interaction: discord.Interaction, target : discord.Member):
+
+        async def modal_callback(interaction: discord.Interaction):
+            try:
+                player_id = self.player_handler.get_player_id(target)
+                print(f"player_id output: {player_id}")
+                if player_id == False:
+                    await interaction.response.send_message(f"This user probably hasn't registered!")
+                    return False
+            except AttributeError:
+                await interaction.response.send_message(f"This user probably hasn't registered!")
+                return False
+            success, message= self.spend_relics(interaction.user, int(modal.children[0].value))
+            if success == True:
+                self.player_handler.set_relics(self.player_handler.get_player_id(target), self.player_handler.get_relics(player_id) + int(modal.children[0].value))
+                await interaction.response.send_message(f"Sent {target.name} {modal.children[0].value} relics! How generous!")
+            else:
+                await interaction.response.send_message(message)
+
+        modal = self.relic_modal(interaction.user, modal_callback)
+        await interaction.response.send_modal(modal)
+
+    def spend_relics (self, user, relics ):
+        player_id = self.player_handler.get_player_id(user)
+        try:
+            if relics <= 0:
+                return False, "Invald Input"
+            if relics <= self.player_handler.get_relics(player_id):
+                self.player_handler.set_relics(player_id, self.player_handler.get_relics(player_id) - relics)
+                return True, f"Spent {relics} relics!"
+            else:
+                return False, "You don't have enough relics!"
+        except ValueError:
+            return False, "Invalid Input!"
+
 
     def is_tinnyf():
         def predicate(ctx):
             return ctx.message.author.id == 842106129734696992
         return commands.check(predicate)
 
+    def relic_modal(self, author, callback):
+        modal = discord.ui.Modal(title = "Relic Input")
+        modal.on_submit = callback
+        relics = self.player_handler.get_relics(self.player_handler.get_player_id(author))
+        relic_count = discord.ui.TextInput(
+            label = f"Spend some of your {self.player_handler.get_relics(self.player_handler.get_player_id(author))} relics!",
+            placeholder = f"1-{relics}", )
+        modal.add_item(relic_count)
+        return modal
+
+    @is_tinnyf()
     @commands.command()
     async def found(self, ctx, name):
-        await ctx.send(self.faction_handler.found(name))
+        role = await ctx.guild.create_role(name = name, reason = "Created for the game")
+        await ctx.send(self.faction_handler.found(name, role.id))
 
      #this can't take self!
     @is_tinnyf()
@@ -85,49 +144,38 @@ class CommandHandler(commands.Cog):
         else:
             raise error
 
-
     @commands.group()
     async def vote(self, ctx):
         if ctx.invoked_subcommand is None:
-            election = await self.choose_election(ctx)
-            option, interaction = await self.choose_option(ctx, election)
-            print("Look down for option")
-            print(option)
-            if "relics" in self.vote_handler.get_types(election):
-                relics = 0
-                relic_message = await interaction.send(
-                f"Please add some relics if you wish! You have {self.player_handler.get_relics(self.player_handler.get_player_id(ctx.author))} relics right now!",
-                components = [
-                    Button(label = "Add 10 relics!",
-                    style = "3",
-                    custom_id = "add_10"
-                    ),
-                    Button(
-                    label = "Confirm",
-                    style = "2",
-                    custom_id = "confirm"
-                    )
-                    ])
-                while True:
-                    interaction = await self.bot.wait_for("button_click", check = lambda interaction: interaction.user.id == ctx.author.id and interaction.message.id == relic_message.id)
-                    if interaction.custom_id == "add_10":
-                        relics = relics + 10
-                        await interaction.send(f"You've got {relics} relics commited right now")
-                    elif interaction.custom_id == "confirm":
-                        await interaction.send(f"Voted with {relics} relics")
-                        if self.player_handler.get_relics(self.player_handler.get_player_id(ctx.author)) < relics:
-                                relics = self.player_handler.get_relics( self.player_handler.get_player_id(ctx.author))
-                        self.player_handler.set_relics(self.player_handler.get_player_id(ctx.author), self.player_handler.get_relics(self.player_handler.get_player_id(ctx.author)) - relics)
-                        if not self.player_handler.get_player_id(ctx.author) in self.vote_handler.get_option_players(election, option):
-                            relics = relics + 50
-                        self.vote_handler.increment_option(election, option, relics)
-                        self.vote_handler.add_player_option(election, option, self.player_handler.get_player_id(ctx.author))
-                        await interaction.send("Vote confirmed!")
-            else:
-                if not self.player_handler.get_player_id(ctx.author) in self.vote_handler.get_option_players(election, option):
-                    await self.vote_handler.increment_option(self, election, option, 1)
-                    self.add_player_option(election, option, self.playerhandler.get_player_id(ctx.author))
 
+            async def election_selector_callback(interaction):
+                print("Election Callback triggers!")
+                election = self.vote_handler.get_election_from_value(election_selector.values[0])
+                print(election)
+                view, vote_selector = self.choose_option(election)
+
+                async def vote_selector_callback(interaction):
+                    print("Vote Callback triggers!!")
+                    option = self.vote_handler.get_option_from_value(election, vote_selector.values[0])
+                    if "Relics" in option:
+                        modal = discord.ui.Modal(title = "Assign Relics!")
+                        pass
+                                    #modal.add_item(discord.ui.TextInput,) =
+
+                    else:
+                        if not self.player_handler.get_player_id(ctx.author) in self.vote_handler.get_option_players(election, option):
+                            await self.vote_handler.increment_option(self, election, option, 1)
+                            self.add_player_option(election, option, self.playerhandler.get_player_id(ctx.author ) )
+
+                vote_selector.callback = vote_selector_callback
+                await ctx.author.send(view = view)
+
+
+
+
+            view, election_selector = self.choose_election(election_selector_callback)
+            election_selector.callback = election_selector_callback
+            await ctx.author.send(view = view)
 
     @vote.command()
     async def display(self, ctx):
@@ -138,7 +186,7 @@ class CommandHandler(commands.Cog):
     @is_tinnyf()
     @vote.command()
     async def remove(self, ctx):
-        election = await self.choose_election(ctx)
+        election = self.choose_election(ctx)
         option, interaction = await self.choose_option(ctx, election)
         self.vote_handler.remove_option(election, option)
 
@@ -146,7 +194,7 @@ class CommandHandler(commands.Cog):
     @is_tinnyf()
     @vote.command()
     async def delete(self, ctx):
-        election = await self.choose_election(ctx)
+        election = self.choose_election(ctx)
         self.vote_handler.remove_election(election)
 
     @vote.command()
@@ -155,7 +203,7 @@ class CommandHandler(commands.Cog):
 
     @vote.command(aliases = ["stand"])
     async def add(self, ctx):
-        election = await self.choose_election(ctx)
+        election = self.choose_election(ctx)
         if ("election" in list(self.vote_handler.get_types(election)) and ctx.invoked_with == "stand"):
             name =   ctx.author.get_name()
             description = f"Click here to vote for {ctx.author.nickname}!"
@@ -172,8 +220,7 @@ class CommandHandler(commands.Cog):
             instruction = await ctx.send("Great! Please react to me with an Emoji!")
             reaction, user =await self.bot.wait_for("reaction_add", check = lambda reaction, user: reaction.message.content == instruction.content and user.id == ctx.author.id )
             emoji = reaction.emoji
-        Subcomponent = SelectOption(label = name, description = description, value = value, emoji = emoji)
-        subcomponent = Subcomponent.to_dict()
+        subcomponent = {"label": name, "description": description, "value": value, "emoji": emoji}
         print(subcomponent)
         await ctx.send(self.vote_handler.add_option(election, value, subcomponent))
 
@@ -188,9 +235,9 @@ class CommandHandler(commands.Cog):
 
     @commands.command()
     async def invite(self, ctx, invited:SmartMember):
-        if self.has_permission(invited, "Send Invites"):
+        if self.has_permission("Send Invites", self.player_handler.get_player_id(ctx.author)):
             await self.invite_process(invited, player_handler.get_faction(member))
-        elif self.get_role_from_id(master_role) in ctx.author.roles:
+        elif ctx.message.author.id == 842106129734696992:
             factions = self.faction_handler.get_factions()
             sent_message = await ctx.send(
                 "Choose a faction",
@@ -243,15 +290,15 @@ class CommandHandler(commands.Cog):
     def get_selected_faction(self, factions, interaction):
         return factions[int(interaction.values[0])]
 
-    def has_permissions(self, permission, player_id):
+    def has_permission(self, permission, player_id):
         try:
-            return permission in self.faction_handler.get_permissions(self.player_handler.get_title(), self.player_handler.get_faction())
+            return permission in self.faction_handler.get_permissions(self.player_handler.get_title(player_id), self.player_handler.get_faction(player_id))
         except Exception as e:
-            print (e)
+            print (e, "Error in has_permission")
             return False
 
     def is_master(self, user):
-        return self.get_role_from_id(self.MASTER_ROLE) in ctx.user.roles
+        return self.get_role_from_id(self.MASTER_ROLE) in user.roles
 
     def get_role_from_id(self, role_id): #Gets a discord role
         return (self.bot.get_guild(self.GUILD_ID)).get_role(role_id)
@@ -259,49 +306,36 @@ class CommandHandler(commands.Cog):
     def interaction_check(self, ctx, interaction):
         return interaction.user.id == ctx.author and interaction.message.id == sent_message.id
 
-    async def choose_election(self, ctx):
-        elections = self.vote_handler.get_votes()
-        sent_message = await ctx.send(
-            "Choose an election!",
-            components = [
-                Select(options = [SelectOption(
-                    label = election.get_name(),
-                    emoji = self.bot.get_emoji(election.get_emoji_id()),
-                    description = "Pick me!",
-                    value = i
-                ) for i, election in enumerate(self.vote_handler.get_votes())],
-                max_values = 1,
-                id = "election_selector"
-                )]
-        )
+    def choose_election(self, ctx):
+        selector_view = discord.ui.View()
+        selector = discord.ui.Select(max_values = 1)
+        for item in self.vote_handler.get_votes():
+            selector.add_option(label = item.name, emoji = self.bot.get_emoji(item.emoji_id))
+        selector_view.add_item(selector)
+        return selector_view, selector
 
-        interaction = await self.bot.wait_for("select_option"
-            , check = lambda i: i.user.id == ctx.author.id and i.custom_id == "election_selector" and i.message.id == sent_message.id)
-        await interaction.send(f"Picked {interaction.component.options[int(interaction.values[0])].label} ")
-        return self.vote_handler.get_votes()[int(interaction.values[0])]
-
-    async def choose_option(self, ctx, election):
+    def choose_option(self, election):
         options = self.vote_handler.get_components(election)
-        subcomponents = []
+        selector_view = discord.ui.View()
+        selector = discord.ui.Select(max_values = 1 )
         for option in options:
-            t = SelectOption(**option)
+            print(option)
+            t = discord.SelectOption(
+            label = option["label"],
+            description = option["description"],
+            emoji = self.bot.get_emoji(option["emoji"]["id"])
+            )
             if len(t.description) > 98:
                 t.description = "My description was too long!"
-            subcomponents.append(t)
-        sent_message = await ctx.send(
-            "Choose an option to vote for!",
-            components =[Select(options = subcomponents ,
-            max_values = 1,
-            id = "option_selector")])
-        interaction = await self.bot.wait_for("select_option", check = lambda i: i.user.id == ctx.author.id and i.custom_id == "option_selector" and i.message.id == sent_message.id)
-        return int(interaction.values[0]), interaction
+            selector.append_option(t)
+        selector_view.add_item(selector)
+        return selector_view, selector
+
 
     @commands.command()
     async def daily(self, ctx):
         try:
             player_id = self.player_handler.get_player_id(ctx.author)
-            #IF daily is before the most recent 7pm
-            # If it's after 7pm
             check_time = dt.now()
             next_reset_time = dt.now()
             if check_time.hour < 19:
@@ -311,10 +345,13 @@ class CommandHandler(commands.Cog):
             check_time = check_time.replace(hour = 19, minute = 00)
             next_reset_time = next_reset_time.replace(hour= 19, minute = 00)
             if check_time >= self.player_handler.get_daily(player_id):
-                amount, data = self.faction_handler.daily_data()
+                amount, data = self.daily_handler.daily_data()
                 self.player_handler.set_relics(player_id, self.player_handler.get_relics(player_id) + int(amount))
                 self.player_handler.set_daily(player_id, dt.now())
                 await ctx.send(f"{data}")
+                extra = await self.daily_handler.daily_extra(data, player_id)
+                if extra:
+                    await ctx.send(extra)
                 message = self.player_handler.daily_runes(self.player_handler.get_player_id(ctx.author))
                 if message:
                     ctx.guild.get_member(842106129734696992).dm_channel.send(f"{ctx.author.name} has grown in power.")
@@ -322,7 +359,7 @@ class CommandHandler(commands.Cog):
             else:
                 await ctx.send(f"You're on cooldown for another {str(next_reset_time- dt.now() )}") #It should be 7pm next to dt now
         except TypeError as e:
-            print(e)
+            print("Error in daily: ", e)
 
     @is_tinnyf()
     @commands.command()
@@ -332,7 +369,45 @@ class CommandHandler(commands.Cog):
         text = await self.bot.wait_for("message", check = lambda m: m.channel == ctx.channel and m.author == ctx.author)
         lst.append(value)
         lst.append(text.content)
-        self.faction_handler.daily_create(lst)
+        self.daily_handler.daily_create(lst)
+
+
+    #should construct a new event object with paths + options with default args(weight=0, start = false)
+    @app_commands.default_permissions(manage_messages = True)
+    @app_commands.command(name = "create")
+    async def event_create(self, interaction: discord.Interaction):
+        modal = discord.ui.Modal(title = "Set Up an Event!")
+        name = discord.ui.TextInput(
+            label = "Choose a name for the event!" ,
+            placeholder = "The duck of the night",
+            required = True )
+        text = discord.ui.TextInput(
+            label = "Insert the text for the event!" ,
+            placeholder = "Start typing!",
+            required = True,
+            style = paragraph
+            )
+        location = discord.ui.TextInput(
+            label = "Choose a location for this event!",
+            placeholder = "The Capital",
+            required = True)
+
+
+
+        async def modal_callback(interaction):
+            name = name.value
+            text = text.value
+            location = location.value
+            self.event_handler.create_event(name, text, location)
+            await interaction.response.send_message("Added a new event!")
+
+
+        modal.add_item(name)
+        modal.add_item(text)
+        modal.add_item(location)
+        await interaction.response.send_modal(modal)
+
+
 
     @is_tinnyf()
     @commands.command()
@@ -342,20 +417,20 @@ class CommandHandler(commands.Cog):
         text = await self.bot.wait_for("message", check = lambda m: m.channel == ctx.channel and m.author == ctx.author)
         lst.append(value)
         lst.append(text.content)
-        self.faction_handler.daily_remove(lst)
+        self.daily_handler.daily_remove(lst)
 
     @is_tinnyf()
     @commands.command()
     async def daily_stats(self, ctx):
         stats = []
-        for list in self.faction_handler.get_dailys():
+        for list in self.daily_handler.get_dailys():
             stats.append(list[0])
         await ctx.send(collections.Counter(stats))
 
     @commands.command()
     async def print_daily(self, ctx):
-        print(self.faction_handler.print_daily())
-        self.faction_handler.daily_data()
+        print(self.daily_handler.print_daily(), "print_daily")
+        self.daily_handler.daily_data()
 
     @is_tinnyf()
     @commands.command()
@@ -382,7 +457,6 @@ class CommandHandler(commands.Cog):
     async def merge(self, ctx, original: SmartMember, new: SmartMember): #Sets one users' ID to be the same as anothers, effectively meaning it returns the same account
         await ctx.send(self.player_handler.merge(self.player_handler.get_player_id(original),self.player_handler.get_player_id(new)))
 
-
     @commands.group(aliases = ["relic"])
     async def relics(self, ctx):
         if ctx.invoked_subcommand is None:
@@ -401,3 +475,46 @@ class CommandHandler(commands.Cog):
             await ctx.send(f"You've given {member.name} {relics} relics! How generous!")
         else:
             await ctx.send("If messages from 5 colours were currency, you'd be rich!")
+
+    @is_tinnyf()
+    @commands.command()
+    async def force_founder(self, ctx, founder: SmartMember):
+        factions = self.faction_handler.get_factions()
+        sent_message = await ctx.send(
+            "Choose a faction",
+            components = [
+                Select(
+                    options = [
+                        SelectOption(
+                            label = faction.get_name(),
+                            emoji = faction.get_emoji(),
+                            description = faction.get_description(),
+                            value = i
+                        ) for i, faction in enumerate(self.faction_handler.get_factions())
+                    ],
+                    max_values = 1,
+                    id = "faction_selector"
+                )
+            ]
+        )
+        interaction = await self.bot.wait_for("select_option"
+        , check = lambda i: i.user.id == ctx.author.id and i.message.id == sent_message.id)
+        selected_faction = self.get_selected_faction(self.faction_handler.get_factions(), interaction)
+        await interaction.send(f"Selected {selected_faction.get_name()}")
+        self.faction_handler.add_member(self.player_handler.get_player_id(founder))
+        self.player_handler.force_founder(self.player_handler.get_player_id(founder), selected_faction.get_id())
+        await founder.add_roles(ctx.guild.get_role(selected_faction.get_role_id()))
+
+
+    @commands.has_permissions(manage_messages=True)
+    @commands.command()
+    async def warn(self, ctx, user: SmartMember, rule):
+        CHANNEL = ctx.guild.get_channel(980242255770181693)
+        await CHANNEL.send(f"{user.display_name} was warned for breaking Rule {rule} by {ctx.author.name} ")
+
+
+    @commands.group()
+    async def faction(self, ctx):
+        if ctx.invoked_subcommand is None:
+            player_id = self.player_handler.get_player_id(ctx.author)
+            await ctx.send(f"You're in the {self.player_handler.get_faction(player_id)}")

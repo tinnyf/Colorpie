@@ -1,30 +1,59 @@
 from datetime import datetime
+import datetime as dt
 import random
-#Faction[Title][Permission]
+import ast
+#Faction[Title][Permission]T
 #Faction[Users][Title]
 #FactionMember.has_permission == User.has_title + Title.has_permission
 #CpUser - invites stored somewhere.
 
 class Player:
-    def __init__(self, discord_reference, ID, name):
-        self.id = ID
+    def __init__(self, id, name, discord_reference, relics = 50, daily = datetime.now(), title = None, rune_scores = None, runes = None, faction = None,
+    HP = random.randint(1,4) + random.randint(1,4) + random.randint(1,4),
+    inventory = [],
+    status = []
+
+
+    ):
+        self.id = id
         self.name = name
-        self.relics = 50
-        self.daily = datetime.now()
+        self.relics = relics
+        if isinstance(daily, str):
+            daily = datetime.strptime(daily, "%Y-%m-%d %H:%M:%S.%f")
+        self.daily = daily
         self.discord_reference = discord_reference
         self.title = None
         self.runes = ["Stiya", "Lana", "Kviz", "Sul", "Tuax", "Yol",
         "Min", "Thark", "Set", "Ged", "Dorn", "Lae"]
-        self.rune_scores = self.randomise_runes()
-
-    def get_faction(self, source, member): #Source should always be the same, but I'm worried about calling for factiondict in here since it doesn't exist... is that stupid?
-        for faction in source:
-            if member.id in source[faction]["members"]:
-                return faction
-        return None ## not sure what to do about it returning string or bool. Is that an issue?
+        if rune_scores == None:
+            self.rune_scores = self.randomise_runes()
+        else:
+            self.rune_scores = rune_scores
+        self.faction = faction
+        self.HP = HP
+        self.inventory = inventory
+        self.status = status
 
     def get_id(self):
         return self.id
+
+    def get_HP(self):
+        return self.HP
+
+    def set_HP(self, HP):
+        self.HP = HP
+
+    def get_inventory(self):
+        return self.inventory
+
+    def set_inventory(self, inventory):
+        self.inventory = inventory
+
+    def get_status(self):
+        return self.status
+
+    def set_status(self, status):
+        self.status = status
 
     def get_name(self):
         return self.name
@@ -46,6 +75,9 @@ class Player:
 
     def set_title(self, title):
         self.title = title
+
+    def get_faction(self):
+        return self.faction
 
     def set_faction(self, faction):
         self.faction = faction
@@ -81,7 +113,11 @@ class Player:
 
     def get_rune_scores(self):
         print(self.rune_scores)
+        if isinstance(self.rune_scores, str):
+            return ast.literal_eval(self.rune_scores)
         return self.rune_scores
 
     def increase_rune(self, rune, amount):
-        self.rune_scores[rune] += amount
+        if isinstance(self.rune_scores, str):
+            self.rune_scores = ast.literal_eval(self.rune_scores)
+        self.rune_scores[rune] += 1
