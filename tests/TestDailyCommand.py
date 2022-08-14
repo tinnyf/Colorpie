@@ -106,15 +106,16 @@ def tests():
         )
 
         daily_available = command._daily_available()
-        assert daily_available is test_data['expected']['_daily_available'], daily_available
+        assert daily_available is test_data['expected']['_daily_available'],\
+            f'Scenario "{scenario}" failed. Expected <{test_data["expected"]["_daily_available"]}> and got <{daily_available}>'
 
         duration_until_next_reset = command._duration_until_next_reset()
         assert duration_until_next_reset == test_data['expected']['_duration_until_next_reset'],\
-            duration_until_next_reset
+            f'Scenario "{scenario}" failed. Expected <{test_data["expected"]["_duration_until_next_reset"]}> and got <{duration_until_next_reset}>'
 
         duration_from_last_daily_to_reset = command._duration_from_last_daily_to_reset()
         assert duration_from_last_daily_to_reset == test_data['expected']['_duration_from_last_daily_to_reset'],\
-            duration_from_last_daily_to_reset
+            f'Scenario "{scenario}" failed. Expected <{test_data["expected"]["_duration_from_last_daily_to_reset"]}> and got <{duration_from_last_daily_to_reset}>'
 
         messages = command.run()
         for message, expected_message in zip(messages, test_data['expected']['run']):
