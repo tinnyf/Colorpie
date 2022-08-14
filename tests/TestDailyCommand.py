@@ -74,6 +74,7 @@ def test_time_methods():
                 '_daily_available': False,
                 '_duration_until_next_reset': datetime.timedelta(hours=7),
                 '_duration_from_last_daily_to_reset': datetime.timedelta(hours=5),
+                'run': ["You're on cooldown for another 7:00:00"],
             },
         },
         'Last daily 1 minute before last reset time': {
@@ -83,6 +84,7 @@ def test_time_methods():
                 '_daily_available': True,
                 '_duration_until_next_reset': datetime.timedelta(hours=7),
                 '_duration_from_last_daily_to_reset': datetime.timedelta(days=1, minutes=1),
+                'run': ['DAILY', 'EXTRA', 'RUNES'],
             },
         },
         'Daily at reset time yesterday': {
@@ -92,6 +94,7 @@ def test_time_methods():
                 '_daily_available': False,
                 '_duration_until_next_reset': datetime.timedelta(hours=7),
                 '_duration_from_last_daily_to_reset': datetime.timedelta(days=1),
+                'run': ["You're on cooldown for another 7:00:00"],
             },
         },
     }
@@ -120,21 +123,7 @@ def test_time_methods():
         assert duration_from_last_daily_to_reset == test_data['expected']['_duration_from_last_daily_to_reset'],\
             duration_from_last_daily_to_reset
 
-
-command = DailyCommand(
-    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
-    daily_handler=MockDailyHandler(),
-    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
-    datetime=datetime
-)
-
-assert command.run(MockAuthor(), MockGuild()) == ["You're on cooldown for another 7:00:00"]
-
-command = DailyCommand(
-    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 13, 14, 0, 0)),
-    daily_handler=MockDailyHandler(),
-    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
-    datetime=datetime
-)
-assert command.run(MockAuthor(), MockGuild()) == ['DAILY', 'EXTRA', 'RUNES']
-
+        messages = command.run(MockAuthor(), MockGuild())
+        for message, expected_message in zip(messages, test_data['expected']['run']):
+            assert message == expected_message,\
+                f'Scenario "{scenario}" failed. Expected <{expected_message}> and got <{message}>'
