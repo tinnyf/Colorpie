@@ -71,21 +71,27 @@ def test_time_methods():
             'last_daily': datetime.datetime(2022, 8, 14, 14, 0, 0),
             'now': datetime.datetime(2022, 8, 14, 12, 0, 0),
             'expected': {
-                'daily_available': False,
+                '_daily_available': False,
+                '_duration_until_next_reset': datetime.timedelta(hours=7),
+                '_duration_from_last_daily_to_reset': datetime.timedelta(hours=5),
             },
         },
         'Last daily 1 minute before last reset time': {
             'last_daily': datetime.datetime(2022, 8, 13, 18, 59, 0),
             'now': datetime.datetime(2022, 8, 14, 12, 0, 0),
             'expected': {
-                'daily_available': True,
+                '_daily_available': True,
+                '_duration_until_next_reset': datetime.timedelta(hours=7),
+                '_duration_from_last_daily_to_reset': datetime.timedelta(days=1, minutes=1),
             },
         },
         'Daily at reset time yesterday': {
             'last_daily': datetime.datetime(2022, 8, 13, 19, 0, 0),
             'now': datetime.datetime(2022, 8, 14, 12, 0, 0),
             'expected': {
-                'daily_available': False,
+                '_daily_available': False,
+                '_duration_until_next_reset': datetime.timedelta(hours=7),
+                '_duration_from_last_daily_to_reset': datetime.timedelta(days=1),
             },
         },
     }
@@ -97,10 +103,23 @@ def test_time_methods():
             datetime=datetime
         )
 
-        assert command._daily_available(
+        daily_available = command._daily_available(
             last_daily=test_data['last_daily'],
             reset_hour=19
-        ) is test_data['expected']['daily_available']
+        )
+        assert daily_available is test_data['expected']['_daily_available'], daily_available
+
+        duration_until_next_reset = command._duration_until_next_reset(reset_hour=19)
+        assert duration_until_next_reset == test_data['expected']['_duration_until_next_reset'],\
+            duration_until_next_reset
+
+        duration_from_last_daily_to_reset = command._duration_from_last_daily_to_reset(
+            last_daily=test_data['last_daily'],
+            reset_hour=19
+        )
+        assert duration_from_last_daily_to_reset == test_data['expected']['_duration_from_last_daily_to_reset'],\
+            duration_from_last_daily_to_reset
+
 
 command = DailyCommand(
     player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
@@ -108,10 +127,6 @@ command = DailyCommand(
     now=datetime.datetime(2022, 8, 14, 12, 0, 0),
     datetime=datetime
 )
-
-assert command._duration_until_next_reset(
-    reset_hour=19
-) == datetime.timedelta(hours=7, minutes=0)
 
 assert command.run(MockAuthor(), MockGuild()) == ["You're on cooldown for another 7:00:00"]
 
