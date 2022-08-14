@@ -93,6 +93,16 @@ def tests():
                 'run': ["You're on cooldown for another 7:00:00"],
             },
         },
+        'Weird time': {
+            'last_daily': datetime.datetime(2022, 8, 14, 8, 0, 0),
+            'now': datetime.datetime(2022, 8, 14, 11, 0, 0, 99),
+            'expected': {
+                '_daily_available': False,
+                '_duration_until_next_reset': datetime.timedelta(hours=8),
+                '_duration_from_last_daily_to_reset': datetime.timedelta(hours=11, microseconds=99),
+                'run': ["You're on cooldown for another 8:00:00"],
+            },
+        },
     }
     for scenario, test_data in scenarios.items():
         command = DailyCommand(
