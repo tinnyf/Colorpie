@@ -33,24 +33,6 @@ class MockDailyHandler:
         return ['EXTRA']
 
 
-class MockDT:
-    def __init__(self, time):
-        self.time = time
-
-    def now(self):
-        return self.time
-
-
-class MockGuild:
-    def get_member(self, guild_id):
-        return MockMember()
-
-
-class MockMember:
-    def __init__(self):
-        self.dm_channel = MockDMChannel()
-
-
 class MockDMChannel:
     def send(self, message):
         pass
@@ -110,7 +92,7 @@ def tests():
             daily_handler=MockDailyHandler(),
             datetime=datetime,
             author=MockAuthor(),
-            guild=MockGuild(),
+            logging_channel=MockDMChannel(),
             now=test_data['now'],
             reset_hour=19,
         )

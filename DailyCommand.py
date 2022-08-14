@@ -1,10 +1,10 @@
 class DailyCommand:
-    def __init__(self, player_handler, daily_handler, datetime, author, guild, now, reset_hour):
+    def __init__(self, player_handler, daily_handler, datetime, author, logging_channel, now, reset_hour):
         self.player_handler = player_handler
         self.daily_handler = daily_handler
         self.player_id = player_handler.get_player_id(author)
         self.author_name = author.name
-        self.logging_channel = guild.get_member(842106129734696992).dm_channel
+        self.logging_channel = logging_channel
         self.player_id = self.player_handler.get_player_id(author)
         self.last_daily = player_handler.get_daily(self.player_id)
         self.now = now
