@@ -61,54 +61,46 @@ class MockAuthor:
         self.name = 'AUTHOR'
 
 
-command = DailyCommand(
-    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
-    daily_handler=MockDailyHandler(),
-    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
-    datetime=datetime
-)
-
-assert command._daily_available(
-    last_daily=datetime.datetime(2022, 8, 14, 14, 0, 0),
-    reset_hour=19
-) is False
-
-command = DailyCommand(
-    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
-    daily_handler=MockDailyHandler(),
-    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
-    datetime=datetime
-)
-
-assert command._daily_available(
-    last_daily=datetime.datetime(2022, 8, 13, 14, 0, 0),
-    reset_hour=19
-) is True
+def tests():
+    test_time_methods()
 
 
-command = DailyCommand(
-    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
-    daily_handler=MockDailyHandler(),
-    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
-    datetime=datetime
-)
+def test_time_methods():
+    scenarios = {
+        'Daily in the future': {
+            'last_daily': datetime.datetime(2022, 8, 14, 14, 0, 0),
+            'now': datetime.datetime(2022, 8, 14, 12, 0, 0),
+            'expected': {
+                'daily_available': False,
+            },
+        },
+        'Last daily 1 minute before last reset time': {
+            'last_daily': datetime.datetime(2022, 8, 13, 18, 59, 0),
+            'now': datetime.datetime(2022, 8, 14, 12, 0, 0),
+            'expected': {
+                'daily_available': True,
+            },
+        },
+        'Daily at reset time yesterday': {
+            'last_daily': datetime.datetime(2022, 8, 13, 19, 0, 0),
+            'now': datetime.datetime(2022, 8, 14, 12, 0, 0),
+            'expected': {
+                'daily_available': False,
+            },
+        },
+    }
+    for scenario, test_data in scenarios.items():
+        command = DailyCommand(
+            player_handler=MockPlayerHandler(test_data['last_daily']),
+            daily_handler=MockDailyHandler(),
+            now=test_data['now'],
+            datetime=datetime
+        )
 
-assert command._daily_available(
-    last_daily=datetime.datetime(2022, 8, 13, 19, 0, 0),
-    reset_hour=19
-) is False
-
-command = DailyCommand(
-    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
-    daily_handler=MockDailyHandler(),
-    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
-    datetime=datetime
-)
-
-assert command._daily_available(
-    last_daily=datetime.datetime(2022, 8, 13, 19, 1, 0),
-    reset_hour=19
-) is False
+        assert command._daily_available(
+            last_daily=test_data['last_daily'],
+            reset_hour=19
+        ) is test_data['expected']['daily_available']
 
 command = DailyCommand(
     player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
