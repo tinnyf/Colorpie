@@ -62,48 +62,72 @@ class MockAuthor:
 
 
 command = DailyCommand(
-    MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
-    MockDailyHandler(),
-    MockDT(datetime.datetime(2022, 8, 14, 12, 0, 0)),
-    datetime
+    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
+    daily_handler=MockDailyHandler(),
+    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
+    datetime=datetime
 )
 
 assert command._daily_available(
-    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
     last_daily=datetime.datetime(2022, 8, 14, 14, 0, 0),
     reset_hour=19
 ) is False
 
-assert command._daily_available(
+command = DailyCommand(
+    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
+    daily_handler=MockDailyHandler(),
     now=datetime.datetime(2022, 8, 14, 12, 0, 0),
+    datetime=datetime
+)
+
+assert command._daily_available(
     last_daily=datetime.datetime(2022, 8, 13, 14, 0, 0),
     reset_hour=19
 ) is True
 
-assert command._daily_available(
+
+command = DailyCommand(
+    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
+    daily_handler=MockDailyHandler(),
     now=datetime.datetime(2022, 8, 14, 12, 0, 0),
+    datetime=datetime
+)
+
+assert command._daily_available(
     last_daily=datetime.datetime(2022, 8, 13, 19, 0, 0),
     reset_hour=19
 ) is False
 
-assert command._daily_available(
+command = DailyCommand(
+    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
+    daily_handler=MockDailyHandler(),
     now=datetime.datetime(2022, 8, 14, 12, 0, 0),
+    datetime=datetime
+)
+
+assert command._daily_available(
     last_daily=datetime.datetime(2022, 8, 13, 19, 1, 0),
     reset_hour=19
 ) is False
 
-assert command._duration_until_next_reset(
+command = DailyCommand(
+    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 14, 14, 0, 0)),
+    daily_handler=MockDailyHandler(),
     now=datetime.datetime(2022, 8, 14, 12, 0, 0),
+    datetime=datetime
+)
+
+assert command._duration_until_next_reset(
     reset_hour=19
 ) == datetime.timedelta(hours=7, minutes=0)
 
 assert command.run(MockAuthor(), MockGuild()) == ["You're on cooldown for another 7:00:00"]
 
 command = DailyCommand(
-    MockPlayerHandler(datetime.datetime(2022, 8, 13, 14, 0, 0)),
-    MockDailyHandler(),
-    MockDT(datetime.datetime(2022, 8, 14, 12, 0, 0)),
-    datetime
+    player_handler=MockPlayerHandler(datetime.datetime(2022, 8, 13, 14, 0, 0)),
+    daily_handler=MockDailyHandler(),
+    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
+    datetime=datetime
 )
 assert command.run(MockAuthor(), MockGuild()) == ['DAILY', 'EXTRA', 'RUNES']
 
