@@ -5,6 +5,8 @@ from discord.ext import commands, tasks
 import typing
 import asyncio
 from discord.ext.commands import Bot, Context
+
+from DailyCommand import DailyCommand
 from Player import Player
 from FactionHandler import FactionHandler
 from PlayerHandler import PlayerHandler
@@ -335,30 +337,17 @@ class CommandHandler(commands.Cog):
     @commands.command()
     async def daily(self, ctx):
         try:
-            player_id = self.player_handler.get_player_id(ctx.author)
-            check_time = dt.now()
-            next_reset_time = dt.now()
-            if check_time.hour < 19:
-                check_time = check_time - datetime.timedelta(days = 1)
-            else:
-                next_reset_time = next_reset_time + datetime.timedelta(days = 1)
-            check_time = check_time.replace(hour = 19, minute = 00)
-            next_reset_time = next_reset_time.replace(hour= 19, minute = 00)
-            if check_time >= self.player_handler.get_daily(player_id):
-                amount, data = self.daily_handler.daily_data()
-                self.player_handler.set_relics(player_id, self.player_handler.get_relics(player_id) + int(amount))
-                self.player_handler.set_daily(player_id, dt.now())
-                await ctx.send(f"{data}")
-
-                for extra_message in self.daily_handler.daily_extra(data, player_id):
-                    await ctx.send(extra_message)
-
-                message = self.player_handler.daily_runes(self.player_handler.get_player_id(ctx.author))
-                if message:
-                    ctx.guild.get_member(842106129734696992).dm_channel.send(f"{ctx.author.name} has grown in power.")
-                    await ctx.send(message)
-            else:
-                await ctx.send(f"You're on cooldown for another {str(next_reset_time- dt.now() )}") #It should be 7pm next to dt now
+            daily_command = DailyCommand(
+                player_handler=self.player_handler,
+                daily_handler=self.daily_handler,
+                datetime=datetime,
+                author=ctx.author,
+                logging_channel=ctx.guild.get_member(842106129734696992).dm_channel,
+                now=dt.now(),
+                reset_hour=19
+            )
+            for message in daily_command.run():
+                await ctx.send(message)
         except TypeError as e:
             print("Error in daily: ", e)
 
