@@ -33,3 +33,10 @@ class DailyCommand:
             messages.append(f"You're on cooldown for another {str(next_reset_time - self.dt.now())}")
 
         return messages
+
+    def _daily_available(self, now, last_daily, reset_hour) -> bool:
+        next_reset_point = now.replace(hour=reset_hour, minute=00, second=00)
+        if next_reset_point < now:
+            next_reset_point += self.datetime.timedelta(days=1)
+
+        return next_reset_point - last_daily > self.datetime.timedelta(days=1)
