@@ -91,6 +91,11 @@ assert command._daily_available(
     reset_hour=19
 ) is False
 
+assert command._duration_until_next_reset(
+    now=datetime.datetime(2022, 8, 14, 12, 0, 0),
+    reset_hour=19
+) == datetime.timedelta(hours=7, minutes=0)
+
 assert command.run(MockAuthor(), MockGuild()) == ["You're on cooldown for another 7:00:00"]
 
 command = DailyCommand(

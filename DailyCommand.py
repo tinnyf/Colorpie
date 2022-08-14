@@ -6,39 +6,32 @@ class DailyCommand:
         self.datetime = datetime
 
     def run(self, author, guild):
-        messages = []
         player_id = self.player_handler.get_player_id(author)
-        check_time = self.dt.now()
-        next_reset_time = self.dt.now()
-        if check_time.hour < 19:
-            check_time = check_time - self.datetime.timedelta(days=1)
-        else:
-            next_reset_time = next_reset_time + self.datetime.timedelta(days=1)
-        check_time = check_time.replace(hour=19, minute=00)
-        next_reset_time = next_reset_time.replace(hour=19, minute=00)
-        if check_time >= self.player_handler.get_daily(player_id):
+        if self._daily_available(self.dt.now(), self.player_handler.get_daily(player_id), reset_hour=19):
             amount, data = self.daily_handler.daily_data()
             self.player_handler.set_relics(player_id, self.player_handler.get_relics(player_id) + int(amount))
             self.player_handler.set_daily(player_id, self.dt.now())
-            messages.append(f"{data}")
 
-            for extra_message in self.daily_handler.daily_extra(data, player_id):
-                messages.append(extra_message)
+            messages = [f"{data}"]
+            messages += self.daily_handler.daily_extra(data, player_id)
 
-            message = self.player_handler.daily_runes(self.player_handler.get_player_id(author))
-            if message:
+            rune_message = self.player_handler.daily_runes(self.player_handler.get_player_id(author))
+            if rune_message:
                 guild.get_member(842106129734696992).dm_channel.send(f"{author.name} has grown in power.")
-                messages.append(message)
-        else:
-            messages.append(f"You're on cooldown for another {str(next_reset_time - self.dt.now())}")
+                messages.append(rune_message)
 
-        return messages
+            return messages
+        else:
+            return [f"You're on cooldown for another {self._duration_until_next_reset(self.dt.now(), reset_hour=19)}"]
 
     def _daily_available(self, now, last_daily, reset_hour) -> bool:
-        return self._duration_until_next_reset(last_daily, now, reset_hour) > self.datetime.timedelta(days=1)
+        return self._duration_from_last_daily_to_reset(now, last_daily, reset_hour) > self.datetime.timedelta(days=1)
 
-    def _duration_until_next_reset(self, last_daily, now, reset_hour):
+    def _duration_from_last_daily_to_reset(self, now, last_daily, reset_hour):
         return self._find_next_reset_point(now, reset_hour) - last_daily
+
+    def _duration_until_next_reset(self, now, reset_hour):
+        return self._find_next_reset_point(now, reset_hour) - now
 
     def _find_next_reset_point(self, now, reset_hour):
         next_reset_point = now.replace(hour=reset_hour, minute=00, second=00)
