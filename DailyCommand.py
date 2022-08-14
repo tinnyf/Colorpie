@@ -35,8 +35,11 @@ class DailyCommand:
         return messages
 
     def _daily_available(self, now, last_daily, reset_hour) -> bool:
-        next_reset_point = now.replace(hour=reset_hour, minute=00, second=00)
-        if next_reset_point < now:
-            next_reset_point += self.datetime.timedelta(days=1)
+        return self._duration_until_next_reset(last_daily, now, reset_hour) > self.datetime.timedelta(days=1)
 
-        return next_reset_point - last_daily > self.datetime.timedelta(days=1)
+    def _duration_until_next_reset(self, last_daily, now, reset_hour):
+        return self._find_next_reset_point(now, reset_hour) - last_daily
+
+    def _find_next_reset_point(self, now, reset_hour):
+        next_reset_point = now.replace(hour=reset_hour, minute=00, second=00)
+        return next_reset_point if next_reset_point >= now else next_reset_point + self.datetime.timedelta(days=1)
