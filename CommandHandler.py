@@ -349,9 +349,10 @@ class CommandHandler(commands.Cog):
                 self.player_handler.set_relics(player_id, self.player_handler.get_relics(player_id) + int(amount))
                 self.player_handler.set_daily(player_id, dt.now())
                 await ctx.send(f"{data}")
-                extra = await self.daily_handler.daily_extra(data, player_id)
-                if extra:
-                    await ctx.send(extra)
+
+                for extra_message in self.daily_handler.daily_extra(data, player_id):
+                    await ctx.send(extra_message)
+
                 message = self.player_handler.daily_runes(self.player_handler.get_player_id(ctx.author))
                 if message:
                     ctx.guild.get_member(842106129734696992).dm_channel.send(f"{ctx.author.name} has grown in power.")
