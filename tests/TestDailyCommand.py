@@ -98,28 +98,25 @@ def tests():
         command = DailyCommand(
             player_handler=MockPlayerHandler(test_data['last_daily']),
             daily_handler=MockDailyHandler(),
+            datetime=datetime,
+            author=MockAuthor(),
+            guild=MockGuild(),
             now=test_data['now'],
-            datetime=datetime
+            reset_hour=19,
         )
 
-        daily_available = command._daily_available(
-            last_daily=test_data['last_daily'],
-            reset_hour=19
-        )
+        daily_available = command._daily_available()
         assert daily_available is test_data['expected']['_daily_available'], daily_available
 
-        duration_until_next_reset = command._duration_until_next_reset(reset_hour=19)
+        duration_until_next_reset = command._duration_until_next_reset()
         assert duration_until_next_reset == test_data['expected']['_duration_until_next_reset'],\
             duration_until_next_reset
 
-        duration_from_last_daily_to_reset = command._duration_from_last_daily_to_reset(
-            last_daily=test_data['last_daily'],
-            reset_hour=19
-        )
+        duration_from_last_daily_to_reset = command._duration_from_last_daily_to_reset()
         assert duration_from_last_daily_to_reset == test_data['expected']['_duration_from_last_daily_to_reset'],\
             duration_from_last_daily_to_reset
 
-        messages = command.run(MockAuthor(), MockGuild())
+        messages = command.run()
         for message, expected_message in zip(messages, test_data['expected']['run']):
             assert message == expected_message,\
                 f'Scenario "{scenario}" failed. Expected <{expected_message}> and got <{message}>'
