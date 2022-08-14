@@ -1,16 +1,27 @@
-import pickle
-from Faction import Faction
-from FactionHandler import FactionHander
-# names = ["Ernie", "Tinny", "Magnus", "Jerdle", "Carla", "Spottes"]
-# factions = [Faction(name) for name in names]
-#
-# with open("factions", "wb") as f:
-#     pickle.dump(factions, f)
-#
-# with open("factions", "rb") as f:
-#     factions = pickle.load(f)
-#
-# for faction in factions:
-#     print (faction.get_name())
+from DailyCommand import DailyCommand
+import datetime
 
-def invite
+
+class MockPlayerHandler:
+    def get_player_id(self, author):
+        return 1
+
+    def get_daily(self, player_id):
+        return MockDT().now()
+
+
+class MockDailyHandler:
+    def daily_data(self, player_id):
+        return 2
+
+    def daily_extra(self, player_id):
+        return ['3']
+
+
+class MockDT:
+    def now(self):
+        return datetime.datetime(2022, 8, 14, 12, 0, 0)
+
+
+command = DailyCommand(MockPlayerHandler(), MockDailyHandler(), MockDT(), datetime)
+assert command.run('AUTHOR', 'GUILD') == ["You're on cooldown for another 7:00:00"]
