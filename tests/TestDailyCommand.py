@@ -62,10 +62,6 @@ class MockAuthor:
 
 
 def tests():
-    test_time_methods()
-
-
-def test_time_methods():
     scenarios = {
         'Daily in the future': {
             'last_daily': datetime.datetime(2022, 8, 14, 14, 0, 0),
