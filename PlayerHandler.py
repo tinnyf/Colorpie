@@ -104,7 +104,29 @@ class PlayerHandler(commands.Cog):
         return self.get_player(playerID).get_title()
 
     def set_title(self, playerID, title):
-        return self.get_player(playerID).set_title(title)
+        self.get_player(playerID).set_title(title)
+        self.save_csv(self.objects_to_dict(self.players), "Players")
+
+    def set_last_daily(self, playerID, daily):
+        return self.get_player(playerID).set_last_daily(daily)
+        self.save_csv(self.objects_to_dict(self.players), "Players")
+
+    def set_next_daily(self, playerID, amount, text):
+        self.get_player(playerID).set_next_daily(amount, text)
+        self.save_csv(self.objects_to_dict(self.players), "Players")
+
+    def get_next_daily(self, playerID):
+        return self.get_player(playerID).get_next_daily()
+
+    def get_last_daily(self, playerID, daily):
+        return self.get_player(playerID).set_next_daily(daily)
+
+    def set_devoted(self, playerID, rune):
+        self.get_player(playerID).set_devoted(rune)
+        self.save_csv(self.objects_to_dict(self.players), "Players")
+
+    def get_devoted(self, playerID):
+        return self.get_player(playerID).get_devoted()
 
     def get_faction(self, playerID):
         return self.get_player(playerID).get_faction()
@@ -119,8 +141,36 @@ class PlayerHandler(commands.Cog):
         self.get_player(playerID).set_relics(relics)
         self.save_csv(self.players, "Players")
 
+    def get_hp(self, playerID):
+        return self.get_player(playerID).get_HP()
+
+    def set_hp_max(self, playerID, HP):
+        self.get_player(playerID).set_HP_max(HP)
+        self.save_csv(self.players, "Players")
+
+    def get_hp_max(self, playerID):
+        return self.get_player(playerID).get_HP_max()
+
+    def redo_hp(self, playerID):
+        self.set_hp_max(player_id, random.randint(1,4) + random.randint(1,4) + random.randint(1,4))
+        while self.get_hp_max(player_id) < self.get_hp(player_id):
+            self.set_hp_max(player_id, random.randint(1,4) + random.randint(1,4) + random.randint(1,4))
+        self.save_csv(self.players, "Players")
+
+    def set_hp(self, playerID, amount):
+        self.get_player(playerID).set_HP(amount)
+        self.save_csv(self.players, "Players")
+
+
+    def change_hp(self, playerID, amount):
+        self.get_player(playerID).set_HP(self.get_player(playerID).get_HP() + amount)
+        self.save_csv(self.players, "Players")
+
     def get_relics(self, playerID):
         return self.get_player(playerID).get_relics()
+
+    def get_discord_reference(self, playerID):
+        return self.get_player(playerID).get_discord_reference()
 
     def set_daily(self, playerID, when):
         self.get_player(playerID).set_daily(when)
@@ -141,7 +191,7 @@ class PlayerHandler(commands.Cog):
         message = None
         try:
             for rune, score in (self.get_player(playerID).get_rune_scores()).items():
-                if random.randint(1, score) == score:
+                if score == 0 or random.randint(1, score) == score:
                     self.increase_rune(playerID, rune, 1)
                     if score == 19:
                         message = "It seems something has changed within. Something has shifted. Power builds within you, and you fear it may someday overspill."
@@ -166,3 +216,11 @@ class PlayerHandler(commands.Cog):
         player = self.get_player(player_ID)
         player.set_faction_id(faction_id)
         player.set_title("Founder")
+
+    def add_status(self, player_ID, status):
+        print("Hi! I'm adding a status look at me!")
+        self.get_player(player_ID).add_status(status)
+        self.save_csv(self.objects_to_dict(self.players), "Players")
+
+    def get_status(self, player_ID):
+        return self.get_player(player_ID).get_status()

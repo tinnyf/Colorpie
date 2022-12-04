@@ -4,8 +4,8 @@ import discord.ext
 from discord.ext import commands, tasks
 import typing
 import asyncio
+import math
 from discord.ext.commands import Bot, Context
-
 from DailyCommand import DailyCommand
 from Player import Player
 from FactionHandler import FactionHandler
@@ -84,6 +84,10 @@ class CommandHandler(commands.Cog):
             else:
                 await interaction.response.send_message(message)
 
+        discord_members = [player.get_discord_reference() for player in self.player_handler.get_players()]
+        if not interaction.user.id in discord_members:
+            await interaction.response.send_message("You must be registered to use this command!")
+            return False
         modal = self.relic_modal(interaction.user, modal_callback)
         await interaction.response.send_modal(modal)
 
@@ -171,9 +175,6 @@ class CommandHandler(commands.Cog):
 
                 vote_selector.callback = vote_selector_callback
                 await ctx.author.send(view = view)
-
-
-
 
             view, election_selector = self.choose_election(election_selector_callback)
             election_selector.callback = election_selector_callback
@@ -305,7 +306,7 @@ class CommandHandler(commands.Cog):
     def get_role_from_id(self, role_id): #Gets a discord role
         return (self.bot.get_guild(self.GUILD_ID)).get_role(role_id)
 
-    def interaction_check(self, ctx, interaction):
+    def my_interaction_check(self, ctx, interaction):
         return interaction.user.id == ctx.author and interaction.message.id == sent_message.id
 
     def choose_election(self, ctx):
@@ -336,20 +337,33 @@ class CommandHandler(commands.Cog):
 
     @commands.command()
     async def daily(self, ctx):
-        try:
-            daily_command = DailyCommand(
-                player_handler=self.player_handler,
-                daily_handler=self.daily_handler,
-                datetime=datetime,
-                author=ctx.author,
-                logging_channel=ctx.guild.get_member(842106129734696992).dm_channel,
-                now=dt.now(),
-                reset_hour=19
-            )
-            for message in daily_command.run():
-                await ctx.send(message)
-        except TypeError as e:
-            print("Error in daily: ", e)
+        discord_members = [player.get_discord_reference() for player in self.player_handler.get_players()]
+        print(discord_members)
+        if not ctx.author.id in discord_members:
+            print("Someone not signed up tried to daily")
+            await ctx.send("You must be registered to use this command!")
+        daily_command = DailyCommand(
+            player_handler=self.player_handler,
+            daily_handler=self.daily_handler,
+            datetime=datetime,
+            author=ctx.author,
+            logging_channel=ctx.guild.get_channel(952332255227969576),
+            now=dt.now(),
+            reset_hour=19
+        )
+        messages, view = daily_command.run()
+
+
+        for count, message in enumerate(messages):
+            if count == len(messages) - 1:
+                try:
+                    await ctx.send(str(message), view= view)
+                    print("Sent message with view?")
+                except AttributeError:
+                    await ctx.send(str(message))
+            else:
+                await ctx.send(str(message))
+
 
     @is_tinnyf()
     @commands.command()
@@ -361,6 +375,133 @@ class CommandHandler(commands.Cog):
         lst.append(text.content)
         self.daily_handler.daily_create(lst)
 
+    def potency(self, index):
+        return ["Silent", "Whispers", "Murmurs", "Words", "Verses", "Song", "Echoing Chorus", "Resounding Resonance", "Thunderous Cry"][index]
+
+    def level_cost(self, player_id, current_runes):
+        total = 0
+        for current_rune in current_runes:
+            print(total)
+            total = total + self.player_handler.get_rune_scores(player_id)[current_rune]* 20
+            print(total)
+        total = total + sum(self.player_handler.get_rune_scores(player_id).values()) *10
+        print(total)
+        return total
+
+    @app_commands.default_permissions(use_application_commands = True)
+    @app_commands.command(name = "character")
+    async def character(self, first_interaction:discord.Interaction):
+        user = first_interaction.user
+        player_id = self.player_handler.get_player_id(user)
+        embed = discord.Embed(title =f"Character details {first_interaction.user.name}")
+        try:
+            if math.isnan(self.player_handler.get_devoted(player_id)):
+                self.player_handler.set_devoted(player_id, None)
+        except TypeError:
+            pass
+        if self.player_handler.get_devoted(player_id):
+            embed.add_field(name = "Devoted Rune", value = f"{self.player_handler.get_devoted(player_id)}" )
+        else:
+            embed.add_field(name = "Devoted Rune", value = "None" )
+        if self.player_handler.get_status(player_id):
+            embed.add_field(name = "Traits", value ="\n".join(self.player_handler.get_status(player_id)))
+        else:
+            embed.add_field(name = "Traits", value = "None")
+
+        print("Pre Rune,Strings")
+        rune_strings = []
+        for rune, score in self.player_handler.get_rune_scores(player_id).items():
+
+            rune_strings.append(f"{rune}: {self.potency(math.floor(score/4))}")
+
+        print("Post")
+        embed.add_field(name = "HP", value = f"{self.player_handler.get_hp(player_id)} / {self.player_handler.get_hp_max(player_id)}")
+        embed.set_author(name=user.display_name,icon_url=user.display_avatar.url )
+        print("Here!")
+        embed.add_field(name = "Runes", value = "\n".join(rune_strings))
+        embed.colour = user.color
+
+        view = discord.ui.View()
+
+        async def view_check(interaction:discord.Interaction):
+            return interaction.user.id == first_interaction.user.id
+
+        discard_button = discord.ui.Button(label = "Discard your devotion", style = discord.ButtonStyle.danger)
+
+        async def discard_callback(interaction:discord.Interaction):
+            await interaction.response.send_message(f"You have rejected {self.player_handler.get_devoted(player_id)}")
+            self.player_handler.set_devoted(player_id, None)
+            embed.set_field_at(0, name = "Devoted Rune", value = "None")
+            await interaction.message.edit(embed=embed, view=view)
+
+        discard_button.callback = discard_callback
+
+        if self.player_handler.get_devoted(player_id):
+            print(f"Devoted to {self.player_handler.get_devoted(player_id)}!")
+            view.add_item(discard_button)
+
+        custom_id = f"{player_id} select menu"
+        selector = discord.ui.Select(custom_id = custom_id)
+        print("post selector")
+        for rune in self.player_handler.get_rune_scores(player_id).keys():
+            print(rune)
+            selector.add_option(label = rune, description = f"Will add {self.level_cost(player_id, [rune])} to your level up cost")
+            print("added option!")
+
+        def get_button(player_id, relics, cost):
+            if cost > runes:
+                button = discord.ui.Button(label = f"Too expensive to level {cost}/{runes}", style = discord.ButtonStyle.danger, disabled = True)
+            else:
+                button = discord.ui.Button(label = f"Pay cost to level {cost}/{runes}", style = discord.ButtonStyle.primary)
+
+                async def button_callback(interaction):
+                    self.player_handler.set_relics(player_id, player_handler.get_relics(player_id) - cost)
+                    for rune in selector.values():
+                        self.player_handler.increase_rune(rune, 1)
+                    await interaction.response.send_message("You leveled up your runes!")
+
+
+        level_button = discord.ui.Button(label = "Select runes to level", style = discord.ButtonStyle.primary, disabled = True)
+        view.add_item(level_button)
+        print("Added level button")
+
+        async def selector_callback(interaction):
+            print("1")
+            nonlocal level_button
+            print("2")
+            view.remove_item(level_button)
+            print("3")
+            level_button = get_button(player_id, self.player_handler.get_relics(player_id), self.level_cost(player_id, selector.values))
+            print("4")
+            view.add_item(level_button)
+            print("5")
+            await interaction.response.edit_message(embed=embed, view = view)
+
+        selector.callback = selector_callback
+        print("Before adding Selector")
+        view.add_item(selector)
+        print("Added Selector")
+
+        view.interaction_check = view_check
+
+        await first_interaction.response.send_message(embed=embed, view=view)
+
+    @app_commands.default_permissions(use_application_commands = True)
+    @app_commands.command(name = "trickortreat")
+    async def trick_callback(self, interaction: discord.Interaction, value: int):
+        player = self.player_handler.get_player_id(interaction.user)
+        if value > self.player_handler.get_relics(player):
+            await interaction.response.send_message("You can't bet more relics than you have!")
+            return False
+        if value < 0:
+            await interaction.response.send_message("You can't bet fewer than 0 relics. Obviously.")
+            return False
+        if random.randint(1,10) >= 6:
+            self.player_handler.set_relics(player, self.player_handler.get_relics(player) + value)
+            await interaction.response.send_message(f"It's a treat! You get {value} relics!")
+        else:
+            self.player_handler.set_relics(player, self.player_handler.get_relics(player) - value)
+            await interaction.response.send_message("You got tricked! You get nothing! You lose! Goodday sir!")
 
     #should construct a new event object with paths + options with default args(weight=0, start = false)
     @app_commands.default_permissions(manage_messages = True)
@@ -447,13 +588,20 @@ class CommandHandler(commands.Cog):
     async def merge(self, ctx, original: SmartMember, new: SmartMember): #Sets one users' ID to be the same as anothers, effectively meaning it returns the same account
         await ctx.send(self.player_handler.merge(self.player_handler.get_player_id(original),self.player_handler.get_player_id(new)))
 
+
+
     @commands.group(aliases = ["relic"])
     async def relics(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send(f" You have {self.player_handler.get_relics(self.player_handler.get_player_id(ctx.author))} relics!")
 
+
     @relics.group()
     async def give(self, ctx, member: SmartMember, relics: int):
+        discord_members = [player.get_discord_reference() for player in self.player_handler.get_players()]
+        if not member.id in discord_members:
+            await ctx.send("You must be registered to use this command!")
+            return False
         if relics < 0:
             await ctx.send("I hate you for trying this.")
             return False
@@ -494,6 +642,7 @@ class CommandHandler(commands.Cog):
         self.faction_handler.add_member(self.player_handler.get_player_id(founder))
         self.player_handler.force_founder(self.player_handler.get_player_id(founder), selected_faction.get_id())
         await founder.add_roles(ctx.guild.get_role(selected_faction.get_role_id()))
+
 
 
     @commands.has_permissions(manage_messages=True)

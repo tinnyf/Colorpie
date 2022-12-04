@@ -16,6 +16,15 @@ import csv
 import pandas
 from collections import Counter
 
+class Question():
+        def __init__(self, type, message):
+            self.type = type
+            self.message = message
+
+        def __str__(self):
+            return self.message()
+
+
 class Qotd(commands.GroupCog, name = "qotd"):
 
     def __init__(self, bot):
@@ -24,18 +33,23 @@ class Qotd(commands.GroupCog, name = "qotd"):
         self.file_locations = {
             "questions": "src/data/questions", #[ {user_id: int , truths[] }}
         }
-        try:
-            self.questions = self.read_pickle(self.file_locations["questions"])
-        except EOFError:
-            self.questions = {}
+        self.questions = []
+        for question in self.read_pickle("questions"):
+            self.questions.append(Question(**question))
 
     def read_pickle(self, location):
-        with open(location, "rb") as f:
-            return pickle.load(f)
+        try:
+            with open(self.file_locations[location], "rb") as f:
+                return pickle.load(f)
+        except EOFError:
+            return {}
 
     async def save_pickle(self, data, location):
         with open(location, "wb") as f:
-            pickle.dump(data, f)
+            dehydrated = []
+            for question in data:
+                dehydrated.append(question.__dict__)
+                pickle.dump(dehydrated, f)
 
 
     @app_commands.default_permissions(use_application_commands = True)
@@ -51,14 +65,14 @@ class Qotd(commands.GroupCog, name = "qotd"):
 
 
     @app_commands.default_permissions(use_application_commands = True)
-    @app_commands.autocomplete(option = add_autocomplete)
+    @app_commands.autocomplete(type = add_autocomplete)
     @app_commands.command(name = "add")
-    async def add(self, interaction: discord.Interaction, option: str ):
+    async def add(self, interaction: discord.Interaction, type: str ):
         modal = discord.ui.Modal(title = "Add your own question here!")
         question_input = discord.ui.TextInput(label = "Please add your question!", max_length = 1024)
 
         async def callback(interaction: discord.Interaction):
-            self.questions[random.randint(1,1000000)] = {"type" : option, "text" : question_input.value}
+            self.questions.append(Question(type, question_input.value))
             await self.save_pickle(self.questions, self.file_locations["questions"])
             await interaction.response.send_message("Thank you for adding a question, it's been saved!")
 
@@ -68,21 +82,18 @@ class Qotd(commands.GroupCog, name = "qotd"):
 
 
     @app_commands.default_permissions(manage_messages = True)
-    @app_commands.autocomplete(option = add_autocomplete)
+    @app_commands.autocomplete(type = add_autocomplete)
     @app_commands.command(name = "post")
-    async def post(self, interaction: discord.Interaction, option: str):
-        key, current = random.choice(list(self.questions.items()))
-        c = 0
-        while not current ["type"] == option:
-            key, current = random.choice(list(self.questions.items()))
-            c += 1
-            if c > 30:
-                await interaction.response.send_message("We don't have any of those in stock, please get some more!")
-                return False
-        embed = discord.Embed(title = f"{option} Question of the day!")
-        embed.description = current["text"]
+    async def post(self, interaction: discord.Interaction, type: str):
+        for question in self.questions:
+            if question.type == type:
+                new = question
+                self.questions.remove(question)
+                break
+
+        embed = discord.Embed(title = f"{type} Question of the day!")
+        embed.description = new.message
         embed.set_footer(text = f"Please answer in Qotd-Answers! Keep discussion to general channels!")
         await interaction.channel.send(embed=embed)
         await interaction.response.send_message("Thank you for your message!", ephemeral = True)
-        self.questions.pop(key)
-        await self.save_pickle(self.questions, "questions")
+        await self.save_pickle(self.questions, self.file_locations["questions"])

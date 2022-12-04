@@ -15,6 +15,8 @@ from CommandHandler import CommandHandler
 from FactionHandler import FactionHandler
 from Games import TruthGame
 from Qotd import Qotd
+from Trials import Trials
+from Moderation import Moderation
 
 intents = discord.Intents.all()
 council_channels = ['816153720651251722']
@@ -32,40 +34,54 @@ class BotInit(Bot):
         await self.tree.sync(guild=GUILD_ID)
 
 
-bot = BotInit(intents=intents, application_id = 974427338857132033, command_prefix =['~','-'])
+bot = BotInit(intents=intents, application_id = 974427338857132033, command_prefix =['~','-', "Oh 5 Colors, hear me now ", "5 Colors, I bid thee ", "5 colors, I bid thee"])
 
 @bot.event
 async def on_member_remove(member):
     channel = bot.get_guild(695401740761301056).get_channel(695755815612710982)
     await channel.send(f"Goodbye {member.name}! It's been a pleasure!")
 
+@bot.event
+async def on_message_delete(message):
+    channel = bot.get_guild(695401740761301056).get_channel(1036599243567272036)
+    log = discord.Embed(
+        title = "Deleted Message",
+        description = message.content,
+        timestamp = datetime.now(),
+        color= message.author.color)
+    log.set_author(name=message.author.display_name,icon_url=message.author.display_avatar.url )
+    log.add_field(name = "message channel", value =message.channel.name)
+    log.add_field(name = "message link", value = message.jump_url)
+    await channel.send(embed= log )
+    for attachment in message.attachments:
+        t = await attachment.to_file()
+        await channel.send(file = t)
+
+@bot.event
+async def on_message_edit(before,after):
+    channel = bot.get_guild(695401740761301056).get_channel(1036599243567272036)
+    differences = []
+    fixed = ""
+    for count, character in enumerate(before.content):
+        if character != after.content[count]:
+            fixed += f"*{character}*"
+        else:
+            fixed += character
+
+    log = discord.Embed(
+        title = "Edited Message",
+        description = before.content,
+        timestamp = datetime.now(),
+        color = before.author.color)
+    log.set_author(name=before.author.display_name,icon_url=before.author.display_avatar.url )
+    if len(after.content) < 1000:
+        log.add_field(name = "New Text", value = after.content )
+    log.add_field(name = "Link to current Message", value = after.jump_url)
+    await channel.send(embed= log )
 
 @bot.event
 async def on_reaction_remove(reaction, user):
     print (f"Reaction removed by {user.name}")
-
-
-@bot.command()
-async def emojis(ctx):
-    count = {}
-    for emoji in ctx.guild.emojis:
-        count[str(emoji)] = 0
-    for TextChannel in ctx.guild.text_channels:
-        async for message in TextChannel.history(limit=None):
-            if message.author == ctx.author:
-                for emoji in ctx.guild.emojis:
-                    emoji = str(emoji)
-                    for emoji in message.contents:
-                        count[emoji] = count[emoji] + 1
-            for reaction in message.reactions:
-                if reaction.emoji in ctx.guild.emojis:
-                    async for user in reaction.users():
-                        if user.id == ctx.author.id:
-                            count[str(emoji)] = count[str(emoji)] + 1
-    await ctx.send(count)
-
-
-
 
 
 @bot.command(aliases=['tempmute'])
@@ -121,6 +137,8 @@ async def cogloader(bot):
     await bot.add_cog(FactionHandler(bot))
     await bot.add_cog(TruthGame(bot))
     await bot.add_cog(Qotd(bot))
+    await bot.add_cog(Trials(bot))
+    await bot.add_cog(Moderation(bot))
 
 async def main(bot):
     await cogloader(bot)
@@ -148,7 +166,7 @@ async def report_message(interaction: discord.Interaction, message: discord.Mess
     embed.timestamp = message.created_at
     url_view = discord.ui.View()
     url_view.add_item(discord.ui.Button(label='Go to Message', style=discord.ButtonStyle.url, url=message.jump_url))
-    await log_channel.send(embed=embed, view=url_view)
+    await log_channel.send(f"Reported by {interaction.user.name}. {interaction.guild.get_role(696382214207832145).mention}", embed=embed, view=url_view)
 
 
 @app_commands.default_permissions(use_application_commands = True)
@@ -209,9 +227,6 @@ async def questionnaire(interaction: discord.Interaction):
 
     modal.on_submit = callback
     await interaction.response.send_modal(modal)
-
-
-
 
 
 
