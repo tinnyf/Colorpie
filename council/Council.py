@@ -6,26 +6,32 @@ import json
 import typing
 import asyncio
 import cp_converters
-from cp_converters import SmartMember
+from cp_converters import SmartMember, SmartRole
 import datetime
-from datetime import date, time, datetime 
+from datetime import date, time, datetime
 from discord.ext.commands import bot
-admin_users = [679680827831222310, 129628193811464193, 697402445244137499, 842106129734696992] 
+import pickle
+admin_users = [679680827831222310, 129628193811464193, 697402445244137499, 842106129734696992]
 voter_roles = [776142371918184479, 776142246008455188]
 councillorID = 776142371918184479
 council_channels = ['816153720651251722']
 voterlist = ["The Athlete", "The Criminal", "The Brain", "The Basket-case", "Scryfall", "Jace", "Chandra", "Nissa", "Ugin", "Nicol Bolas", "Gideon", "Tybalt", "Dovin Baan", "Elesh Norn", "Ajani",
-"Vorniclex", "Ragavan", "Saheeli Rai", "Sarkhan", "Tyvar", "Garruk", "Rowan (and Will)", "Will (and Rowan)", "Nahiri", "Sorin", "All of the Eldrazi", "Yawgmoth", "Urza"]            
-             
-             
-swordEmoji = '⚔️' 
+"Vorniclex", "Ragavan", "Saheeli Rai", "Sarkhan", "Tyvar", "Garruk", "Rowan (and Will)", "Will (and Rowan)", "Nahiri", "Sorin", "All of the Eldrazi", "Yawgmoth", "Urza"]
+
+
+swordEmoji = '⚔️'
 # -*- coding: utf-8 -*-
 
 class cp_council(commands.Cog):
      def __init__(self,bot):
+        locations = {"Symbols": "src/data/symbols"}
         self.bot = bot
         print('Cp_Council init')
         self.downlist = {}
+        try:
+            self.symbols = self.read_pickle("Symbols")
+        except EOFError:
+            self.symbols = {}
         with open ('src/data/council.json') as json_file_r0:
             try:
                 self.councillist = json.load(json_file_r0)
@@ -50,21 +56,27 @@ class cp_council(commands.Cog):
                 print("JsonDecodeError")
                 print(f"{p}")
                 self.userlist = {}
-       
+
      def save_json_dict(self, dict):
         with open("src/data/council.json", 'w') as json_file:
             json.dump(dict,json_file)
-            
+
      def save_json_dict2(self, dict):
         with open("src/data/challenge.json", 'w') as json_file:
             json.dump(dict,json_file)
-            
+
      def save_json_dict3(self, dict): #What the fuck even is a parameter anyway lol
         with open("src/data/users.json", 'w') as json_file:
             json.dump(dict,json_file)
-            
-    
-            
+
+     def read_pickle(self, location):
+        with open(location, "rb") as f:
+            return pickle.load(f)
+
+     def save_pickle(self, data, location):
+        with open(location, "wb") as f:
+            pickle.dump(data, f)
+
      async def edit_element(self, ctx, bot, component): #This whole function should handle input data
         def edit_response(message):
             return message.author == ctx.author and message.channel == ctx.channel and ((message.content.lower()[0:4]) == ("edit") or message.content.lower()[0:4] == ("done"))
@@ -81,16 +93,16 @@ class cp_council(commands.Cog):
             else:
                 print(response.content)
                 return (response.content)
-            
+
      async def CRole(self, ctx, user):
          roles_temp = user.roles
          if not ctx.guild.get_role(776142371918184479) in roles_temp:
              roles_temp.append(ctx.guild.get_role(776142371918184479))
              await user.edit(roles = roles_temp)
-         
-    
+
+
      async def CanVote(self, ctx, user, challenge):
-         n = 0 
+         n = 0
          print ('check')
          temp = []
          try:
@@ -106,21 +118,21 @@ class cp_council(commands.Cog):
              return False
          else:
              if( str(user.id) == (str(self.challengelist[challenge]['Challenger']) or str(user.id) == str(self.challengelist[challenge]['Defender']))):
-                 return False 
+                 return False
              else:
                 print (n)
                 print (str(user.id))
                 return True
-            
+
      @commands.command(help = "Use ~inspect <seat emoji> in order to see who owns a particular seat! Useful if you need a particular councillor, but don't know who they are." )
      async def inspect(self, ctx, emoji : discord.Emoji):
          try:
              guild = ctx.guild
              await ctx.send(f'{(guild.get_member(self.councillist[str(emoji.id)]).name)} is the owner of the {str(emoji)} position.')
          except AttributeError:
-             await ctx.send('Position vacant')                            
-            
-     @commands.command(help = "Use ~claim to take a particular seat. Please note that the <emoji> needs to be an existent seat unless you're an admin. You can use ~show to see all available seats!")   
+             await ctx.send('Position vacant')
+
+     @commands.command(help = "Use ~claim to take a particular seat. Please note that the <emoji> needs to be an existent seat unless you're an admin. You can use ~show to see all available seats!")
      async def claim(self, ctx, emoji: discord.Emoji):
         rcp = ctx.guild
         if not emoji.is_usable():
@@ -136,7 +148,7 @@ class cp_council(commands.Cog):
                 await ctx.send(f"You are now the owner of the {str(emoji)} position.")
                 self.save_json_dict(self.councillist)
                 await self.CRole(ctx, ctx.author)
-                
+
             elif self.councillist[emojid]:
                 await ctx.send(f"This position is already taken by {rcp.get_member(self.councillist[emojid]).name}.")
             else:
@@ -144,18 +156,18 @@ class cp_council(commands.Cog):
         except KeyError as p:
                 print (p)
                 await ctx.send("This seat does not seem to exist. If it does, please @tinnyf")
-                
+
      @commands.command()
      async def grant(self, ctx, emoji: discord.Emoji, user: SmartMember):
         global admin_users
         if not ctx.author.id in admin_users:
             await ctx.send("This is an admin only command")
-            return False 
+            return False
         self.councillist[str(emoji.id)]= user.id
         self.save_json_dict(self.councillist)
         await self.CRole(ctx, user)
         await ctx.send(f'{user} is now the owner of the {str(emoji)} position.')
-        
+
      @commands.command()
      async def chat(self, ctx, tchannel, *, message):
         global admin_users
@@ -163,13 +175,13 @@ class cp_council(commands.Cog):
         if not (ctx.author.id in admin_users or guild.get_member(ctx.author.id).top_role.position >= guild.get_role(696382214207832145).position):
             await ctx.send("This is an admin only command")
             return False
-        else:   
-            guild = self.bot.get_guild(695401740761301056)    
+        else:
+            guild = self.bot.get_guild(695401740761301056)
             for channel in guild.text_channels:
                 if channel.name.lower() == tchannel.lower():
                     await channel.send(message)
-                    
-    
+
+
      @commands.command(help = "Show is the most useful command. Using it will show every seat and owner. Please note that every seat will show up empty in DM's!")
      async def show(self,ctx):
         neatlist = []
@@ -185,10 +197,10 @@ class cp_council(commands.Cog):
             await ctx.send("I may decide to feed your delusions of grandeur, boy.")
         p = "\n".join(neatlist)
         await ctx.send(p)
-        
-        
-        
-        
+
+
+
+
      @commands.command()
      async def purge(self, ctx):
          global admin_users
@@ -204,8 +216,8 @@ class cp_council(commands.Cog):
                      emoji = self.bot.get_emoji(int(idh))
                      print(f" Emoji ID; {emoji.id}")
                      await self.depose(ctx, emoji)
-                     
-                 
+
+
      @commands.command(help = "You should be able to use ~depose on yourself to leave a seat. Failing that, please @tinnyf. Depose is otherwise an admin only command.")
      async def depose(self, ctx, emoji: discord.Emoji):
          global admin_users
@@ -213,7 +225,7 @@ class cp_council(commands.Cog):
          user = ctx.guild.get_member(self.councillist[str(emoji.id)])
          if not( ctx.author.id in admin_users or (str(ctx.author.id) == str(self.councillist[str(emoji.id)]))):
              await ctx.send("You can only depose your own seat!")
-             return False 
+             return False
          if self.councillist[str(emoji.id)]:
              self.councillist[str(emoji.id)] = 'Empty'
              await ctx.send(f' There is now no owner of {str(emoji)} position.')
@@ -230,7 +242,7 @@ class cp_council(commands.Cog):
          else:
             await ctx.send("This seat doesn't exist")
 
-     
+
      @commands.command()
      async def clear(self, ctx, emoji: discord.Emoji):
         global admin_users
@@ -251,7 +263,7 @@ class cp_council(commands.Cog):
             except KeyError:
                 await ctx.send('Position not found')
 
-                 
+
 
      @commands.command(help = "~todo simply tells you what ongoing challenges you're yet to vote in. Please note it can only track votes registered through the bot's challenge fuction")
      async def todo(self, ctx, debug = False):
@@ -262,10 +274,10 @@ class cp_council(commands.Cog):
              temp.append(l.id)
          if not 776142371918184479 in temp:
              await ctx.send(random.choice(["Nothing, your vote doesn't matter. Nothing you do matters here.", "Go and get a council seat and then come back!", "Discover the secrets of the colour pie!", "Annoy Jerdle", "Suggest improvements to my master", "Write an essay on your thoughts on Temur", "Tidy your room"]))
-             return False 
+             return False
          for key, challenge in self.challengelist.items():
              print (key, challenge)
-             n = 0 
+             n = 0
              for x in challenge.values():
                  print (x)
                  try:
@@ -274,7 +286,7 @@ class cp_council(commands.Cog):
                          Tany = 1
                  except TypeError:
                      if str(ctx.author.id) in x:
-                         n = 1 
+                         n = 1
              if not n == 1:
                  if not key in temp:
                      temp.append(key)
@@ -282,10 +294,10 @@ class cp_council(commands.Cog):
                          await ctx.send(f"No Match Found: ctx.author.id = {ctx.author.id}, list of ID's in {key} (which we would call {str(self.bot.get_emoji(int(key)))} = {self.challengelist[key]}")
                      else:
                         await ctx.send(f" Vote in the {str(self.bot.get_emoji(int(key)))} election")
-                        Tany = 1 
+                        Tany = 1
          if not Tany == 1:
             await ctx.send("You've done all your tasks!")
-            
+
      @commands.command(help = "To trade seats with another member, type ~trade <user>. The bot can usually recognise users from their username or nickname (as well as a mention, but I don't recommend that). They will recieve a DM telling them to confirm. Please note if for some reason they can't recieve a DM (for example, they've blocked the bot), the command ~accept request should still work.")
      async def trade(self, ctx, user:SmartMember):
          councillors = list(self.councillist.values())
@@ -299,7 +311,7 @@ class cp_council(commands.Cog):
              if self.userlist[str(user.id)]["Trade"] != "Empty":
                  await ctx.send("Your recipient already has a pending seat.")
                  return False
-         except KeyError as r: 
+         except KeyError as r:
              print (r)
          try:
              self.userlist[str(user.id)]["Trade"] = str(ctx.author.id)
@@ -309,7 +321,7 @@ class cp_council(commands.Cog):
          self.save_json_dict3(self.userlist)
          await user.create_dm()
          await user.dm_channel.send(f"You've recieved a trade request from {ctx.author.name}, please type ~accept request to take it.")
-             
+
      @commands.command()
      async def reject(self, ctx, sub = None):
          if sub is None:
@@ -329,7 +341,7 @@ class cp_council(commands.Cog):
                      await user.dm_channel.send(f"Your trade request to {ctx.author.name} was denied")
              except KeyError:
                  await ctx.send("You likely have no trade requests to reject.")
-            
+
      @commands.group()
      async def accept(self, ctx):
          if ctx.invoked_subcommand is None:
@@ -338,16 +350,16 @@ class cp_council(commands.Cog):
                     await ctx.send("You have an unfulfilled trade request, please type ~accept request to accept it")
              except KeyError as R:
                  print (R)
-             
+
      @accept.command()
      async def request(self, ctx):
          targetseat = False
-         originseat = False 
+         originseat = False
          try:
              origin = self.userlist[str(ctx.author.id)]["Trade"]
              if origin == "Empty":
                  await ctx.send("You don't have a trade offer")
-                 return False 
+                 return False
          except KeyError:
              await ctx.send("You probably don't have a trade request, but @tinnyf if that's not the case")
              return False
@@ -366,7 +378,7 @@ class cp_council(commands.Cog):
                 await ctx.send("You don't seem to have a seat. Deleting trade offer.")
                 self.userlist[str(ctx.author.id)]["Trade"] = "Empty"
                 self.save_json_dict3(self.userlist)
-                return False 
+                return False
              else:
                 self.councillist[str(originseat)] = int(ctx.author.id)
                 self.councillist[str(targetseat)] = int(origin)
@@ -377,19 +389,19 @@ class cp_council(commands.Cog):
                 self.save_json_dict(self.councillist)
                 self.userlist[str(ctx.author.id)]["Trade"] = "Empty"
                 self.save_json_dict3(self.userlist)
-          
+
      @commands.command()
      async def Paypal(self,ctx):
          embed = discord.Embed()
          embed.description = "I'd like to say that I'm above money, but I'm definitely not. I would never encourage anyone to donate, but if you should wish to, please find my paypal [here](https://paypal.me/tinnyfcoder?locale.x=en_GB)."
-         await ctx.send(embed=embed) 
-                
-                
+         await ctx.send(embed=embed)
+
+
      @commands.group()
      async def challenge(self, ctx):
          if ctx.invoked_subcommand is None:
             await ctx.send('Valid subcommands are: Declare, View, and surrender')
-            
+
      @challenge.command(aliases = ['Declare'], help = 'Use this command to declare a challenge against a particular seat. Usage: ~challenge declare seat' )
      async def declare(self, ctx, seat: discord.Emoji):
         if not str(seat.id) in self.councillist.keys():
@@ -400,7 +412,7 @@ class cp_council(commands.Cog):
         await UI.add_reaction('✔')
         await UI.add_reaction('❌')
         n=1
-        while n != 2 : 
+        while n != 2 :
             try:
                 reaction, user = await self.bot.wait_for('reaction_add',timeout = 60)
             except asyncio.TimeoutError:
@@ -413,16 +425,16 @@ class cp_council(commands.Cog):
                 if k.count == 2:
                     if (str(k.emoji)) == "✔":
                         self.challengelist[str(seat.id)] = {'Challenger' : str(ctx.author.id), 'Defender': str(self.councillist[str(seat.id)]), 'CVoters' : [], 'DVoters' : []}
-                        await ctx.send(f"{ctx.guild.get_role(776142371918184479).mention}, hear me now! {ctx.author.name} has issued a challenge against {ctx.guild.get_member(int(self.councillist[str(seat.id)])) }. Please vote on the challenge using ~challenge view!")
+                        await ctx.send(f"Councillors, hear me now! {ctx.author.name} has issued a challenge against {ctx.guild.get_member(int(self.councillist[str(seat.id)])) }. Please vote on the challenge using ~challenge view!")
                         await reaction.message.delete(delay = 3)
                         self.save_json_dict2(self.challengelist)
-                        return True 
+                        return True
                     elif str(k.emoji) == '❌':
                         await ctx.send ("Challenge cancelled")
                         await reaction.message.delete(delay = 2)
                         return False
-     
-    
+
+
      @challenge.command(aliases = ['View'], help = "~challenge view opens up an UI intended to allow users to easily view and vote on challenges. It's very useful, but if you're confused please ask another member of the council. My advice is to think of the emoji as buttons.")
      async def view(self, ctx, Auth = False):
         if (Auth == "True" or Auth == "true" and not ctx.author.id in admin_users):
@@ -442,16 +454,17 @@ class cp_council(commands.Cog):
                 defender = guild.get_member(int(self.challengelist[active]["Defender"]))
                 embed = discord.Embed(title = f'Election for {str(self.bot.get_emoji(int(active)))}', colour = host.colour)
                 embed.set_footer(text = "Challenge %r of %r. Use sword to vote for the challenger, or the emoji for the defender. Cross closes the UI. Use arrows to scroll." %(n+1, len(self.challengelist)))
-                embed.set_thumbnail(url=host.avatar_url)
+                embed.set_thumbnail(url=host.display_avatar.url)
                 embed.add_field(name = "⚔️Challenger⚔️", value = host.name)
                 DefEmoji = self.bot.get_emoji(int(active))
                 embed.add_field(name = f'{str(DefEmoji)}Defender{str(DefEmoji)}', value = defender.name )
-            except AttributeError:
+            except AttributeError as r:
+                print (r)
                 self.challengelist.pop(active)
                 await ctx.send(f"I didn't like the {str(self.bot.get_emoji(int(active)))} challenge so I deleted it, hope that's okay.")
-                return False 
+                return False
             temp = []
-            temp2 = '' 
+            temp2 = ''
             for y in self.challengelist[active]["DVoters"]:
                 if Auth == True or Auth == "true" or ctx.author.id == int(y):
                    p = f"**{guild.get_member(int(y)).name}**"
@@ -486,7 +499,7 @@ class cp_council(commands.Cog):
             await UI.add_reaction('❌')
             cl=1
             p = 0
-            while cl != 2 : 
+            while cl != 2 :
                 try:
                     reaction, user = await self.bot.wait_for('reaction_add',timeout = 60)
                 except asyncio.TimeoutError:
@@ -531,8 +544,8 @@ class cp_council(commands.Cog):
                                     await reaction.remove(ctx.author)
                                     cl = 2
                                     break
-                                
-                                
+
+
                                 elif str(k.emoji) == '❌':
                                     await ctx.send ("Command Cancelled!")
                                     await reaction.message.delete(delay = 2)
@@ -544,10 +557,10 @@ class cp_council(commands.Cog):
                                         await reaction.remove(ctx.author)
                                     else:
                                         n = n-1
-                                        cl = 2 
+                                        cl = 2
                                         await reaction.remove(ctx.author)
                                         await UI.clear_reactions()
-                                        break 
+                                        break
                                 elif str(k.emoji) =='➡':
                                     if n + 1 == len(self.challengelist):
                                         await ctx.send('No more entries in this direction')
@@ -563,9 +576,9 @@ class cp_council(commands.Cog):
                                     print (k.message)
                             elif user.bot == False:
                                 await reaction.remove(user)
-                                
-                                
-        
+
+
+
      @challenge.command()
      async def surrender(self, ctx, user : SmartMember = None, debug = False):
          if user is None:
@@ -573,14 +586,14 @@ class cp_council(commands.Cog):
          else:
              if not (user == ctx.author or ctx.author.id in admin_users):
                  await ctx.send("You're not allowed to surrender on the behalf of someone else")
-                 return false 
+                 return false
          to_change = []
          if debug == 'True' or debug == True:
              await ctx.send("I can recieve this command I'm just being difficult")
          for n in self.challengelist.keys():
              n = str(n)
              if str(self.challengelist[n]['Challenger']) == str(user.id):
-                 print ('Test') 
+                 print ('Test')
                  if debug == False:
                      await ctx.send(f"{ctx.guild.get_role(776142371918184479).mention}, {user.name} has backed down from their challenge! {ctx.guild.get_member(int(self.challengelist[n]['Defender'])).name} shall retain their seat!")
                  to_change.append(n)
@@ -604,8 +617,8 @@ class cp_council(commands.Cog):
                  print (test)
                  self.save_json_dict(self.councillist)
                  self.save_json_dict2(self.challengelist)
-                 
-     @commands.command()            
+
+     @commands.command()
      async def people(self,ctx):
          toDelete = []
          for user in self.userlist:
@@ -620,7 +633,7 @@ class cp_council(commands.Cog):
          for i in toDelete:
              self.userlist.pop(i)
          self.save_json_dict3(self.userlist)
-                 
+
      @commands.group()
      async def profile(self,ctx):
          if ctx.invoked_subcommand is None:
@@ -629,7 +642,7 @@ class cp_council(commands.Cog):
                      await self.send(ctx)
              except KeyError:
                  await self.create(ctx)
-             
+
      @profile.group()
      async def cleanfields(self,ctx,user: SmartMember = None):
          sadlist = ['1','2','3','4','5','6','7','8','9','0','.',' ']
@@ -637,7 +650,7 @@ class cp_council(commands.Cog):
              active = self.userlist[str(user.id)]['EmbedStructure']
              for i in active["fields"]:
                  p = i["name"]
-                 n = 0 
+                 n = 0
                  for letter in p:
                      if letter in sadlist:
                          n = n + 1
@@ -647,18 +660,18 @@ class cp_council(commands.Cog):
                  print (f'test = {test}')
                  i["name"] = test
                  p = i["value"]
-                 n = 0 
+                 n = 0
                  for letter in p:
                      if letter in sadlist:
                          n = n + 1
                      else:
                          break
                  i["value"] = p[n: :]
-             self.save_json_dict3(self.userlist)      
-                    
+             self.save_json_dict3(self.userlist)
+
          except KeyError:
              await ctx.send('No such user found')
-    
+
      @profile.group()
      async def send(self, ctx, user: SmartMember = None):
          if user is None:
@@ -669,7 +682,7 @@ class cp_council(commands.Cog):
              await ctx.send(embed=embed)
          except KeyError:
              await ctx.send("No configured profile!")
-    
+
      @profile.group(aliases = ['edit'])
      async def create(self, ctx):
         try:
@@ -693,8 +706,8 @@ class cp_council(commands.Cog):
             structlist[n] = i.name
             embed.set_field_at((c), name = structlist[n], value = f'{n+1}. {i.value}')
             n = n + 1
-            structlist[n] = f'{n}. Field contents' 
-            c = c + 1 
+            structlist[n] = f'{n}. Field contents'
+            c = c + 1
         UI = await ctx.send(embed=embed)
         print (structlist)
         await ctx.send('Please type edit [index or name] [contents]. For example, to change the item marked 1 to hi, please write edit 1 hi. To change the title to potato write edit title potato. Type done when done.')
@@ -707,7 +720,7 @@ class cp_council(commands.Cog):
                 except KeyError:
                     self.userlist[str(ctx.author.id)] = {}
                     self.userlist[str(ctx.author.id)]['EmbedStructure'] = EDICT
-                
+
             elif not (response == "done" or response ==  "Done"):
                 blist = response.split()
                 del blist[0]
@@ -767,7 +780,7 @@ class cp_council(commands.Cog):
             self.save_json_dict3(self.userlist)
         else:
             await self.bot.get_guild(695401740761301056).get_channel(695401740761301059).send(f'{ctx.author.mention} tried to upvote themselves lol')
-    
+
      @commands.command(aliases = ["alert", "flag"])
      @commands.dm_only()
      async def down (self, ctx, member:discord.Member, *, reason):
@@ -782,11 +795,13 @@ class cp_council(commands.Cog):
          embed.add_field(name = "Count", value = f"{len(self.downlist[member.id])} times this restart")
          embed.color = discord.Colour.red()
          await self.bot.get_guild(695401740761301056).get_channel(793161418365992970).send(embed=embed)
-         await ctx.send("Your message is with staff!")                     
-                            
+         await ctx.send("Your message is with staff!")
+         print(f"Recieved downvote {member.nickname}, {reason}")
+
      @commands.command(aliases = ["total"])
-     async def upshow (self, ctx, role: discord.Role):
+     async def upshow (self, ctx, role: SmartRole):
         count = 0
+        error_list = [ ]
         for Mid in self.userlist:
             try:
                 if role in (ctx.guild.get_member(int(Mid))).roles:
@@ -795,5 +810,25 @@ class cp_council(commands.Cog):
                 pass
             except TypeError:
                 self.userlist[Mid]["reps"] = []
+            except AttributeError:
+                error_list.append(Mid)
+        for user_id in error_list:
+            del self.userlist[user_id]
         await ctx.send(f"That role has {count} points")
 #     n )
+
+     @commands.command()
+     async def explain(self, ctx, emoji: discord.Emoji):
+         text = await self.bot.wait_for("message", check = lambda m: m.channel == ctx.channel and m.author == ctx.author)
+         try:
+            self.symbols[emoji.id] = text.content
+            self.save_pickle(self.symbols, "symbols")
+         except AttributeError as e:
+            symbols = {}
+            symbols[emoji.id] = text.content
+            print(text)
+            self.save_pickle(symbols,"symbols")
+
+     @commands.command()
+     async def whatis(self, ctx, emoji: discord.Emoji):
+         await ctx.send(self.symbols[emoji.id])
