@@ -10,13 +10,14 @@ from discord.ext.commands import Bot, Context
 from discord.ext import commands, tasks
 import datetime
 from datetime import datetime, time, date
-from Council import cp_council
-from CommandHandler import CommandHandler
-from FactionHandler import FactionHandler
-from Games import TruthGame
-from Qotd import Qotd
-from Trials import Trials
-from Moderation import Moderation
+from council.Council import cp_council
+from rpg.CommandHandler import CommandHandler
+from features.Games import TruthGame
+from features.Qotd import Qotd
+from features.Trials import Trials
+from moderation.Moderation import Moderation
+from moderation.Channels import Channels
+from moderation.Rules import Rules
 
 intents = discord.Intents.all()
 council_channels = ['816153720651251722']
@@ -134,7 +135,6 @@ async def cogloader(bot):
     await bot.add_cog(cp_council(bot))
     #await bot.add_cog(cp_events(bot))
     await bot.add_cog(CommandHandler(bot))
-    await bot.add_cog(FactionHandler(bot))
     await bot.add_cog(TruthGame(bot))
     await bot.add_cog(Qotd(bot))
     await bot.add_cog(Trials(bot))
