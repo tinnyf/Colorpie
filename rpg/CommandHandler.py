@@ -1,6 +1,7 @@
 import asyncio
 import collections
 import datetime
+import traceback
 from datetime import datetime as dt
 import functools
 import math
@@ -9,6 +10,7 @@ import typing
 import cp_converters
 from cp_converters import SmartMember
 
+from rpg.UI.User_Selector import UserSelector
 from rpg.daily.DailyCommand import DailyCommand
 from rpg.daily.DailyHandler import DailyHandler
 from rpg.faction.FactionHandler import FactionHandler, Faction
@@ -66,7 +68,17 @@ class CommandHandler(commands.Cog):
             name='Give Relics',
             callback=self.give_relics_callback
         )
+        self.see_relics = discord.app_commands.ContextMenu(
+            name = "See Relics",
+            callback = self.see_relics_callback
+        )
         self.bot.tree.add_command(self.ctx_menu)
+        self.bot.tree.add_command(self.see_relics)
+
+
+    async def see_relics_callback(self, interaction, user: discord.Member):
+        await interaction.response.send_message(
+            f"{user.name} has {self.player_handler.get_relics(self.player_handler.get_player_id(user))} relics!")
 
     async def give_relics_callback(self, interaction: discord.Interaction, target: discord.Member):
 
@@ -110,8 +122,8 @@ class CommandHandler(commands.Cog):
             return False, "Invalid Input!"
 
     def is_tinnyf():
-        def predicate(ctx):
-            return ctx.message.author.id == 842106129734696992
+        def predicate(interaction):
+            return interaction.message.author.id == 842106129734696992
 
         return commands.check(predicate)
 
@@ -126,8 +138,8 @@ class CommandHandler(commands.Cog):
         return modal
 
     @is_tinnyf()
-    @commands.command()
-    async def found(self, ctx, name):
+    @app_commands.command()
+    async def found(self, interaction, name:str):
         role = await ctx.guild.create_role(name=name, reason="Created for the game")
         await ctx.send(self.faction_handler.found(name, role.id))
 
@@ -139,7 +151,7 @@ class CommandHandler(commands.Cog):
         text = await self.bot.wait_for("message", check=lambda m: m.channel == ctx.channel and m.author == ctx.author)
         self.faction_handler.register(word, text.content)
 
-    @commands.cooldown(6, 1800, commands.BucketType.user)
+    # @commands.cooldown(6, 1800, commands.BucketType.user)
     @commands.command()
     async def discover(self, ctx, *, word):
         try:
@@ -247,15 +259,15 @@ class CommandHandler(commands.Cog):
     @commands.command()
     async def invite(self, ctx, invited: SmartMember):
         if self.has_permission("Send Invites", self.player_handler.get_player_id(ctx.author)):
-            await self.invite_process(invited, player_handler.get_faction(member))
+            await self.invite_process(invited, self.player_handler.get_faction(invited))
         elif ctx.message.author.id == 842106129734696992:
             factions = self.faction_handler.get_factions()
             sent_message = await ctx.send(
                 "Choose a faction",
                 components=[
-                    Select(
+                    discord.ui.Select(
                         options=[
-                            SelectOption(
+                            discord.ui.SelectOption(
                                 label=faction.get_name(),
                                 emoji=faction.get_emoji(),
                                 description=faction.get_description(),
@@ -280,13 +292,13 @@ class CommandHandler(commands.Cog):
         await invitee.create_dm()
         sent_message = await invitee.dm_channel.send(f"You've recieved an invite to faction: {faction.name}",
                                                      components=[
-                                                         Button(label="Accept", style=3, id="AcceptButton"),
-                                                         Button(label="Refuse", style=4, id="RefuseButton"),
+                                                         discord.ui.Button(label="Accept", style=3, id="AcceptButton"),
+                                                         discord.ui.Button(label="Refuse", style=4, id="RefuseButton"),
                                                      ])
         interaction = await self.bot.wait_for("button_click", check=lambda i: (sent_message.id == i.message.id))
         if interaction.custom_id == "AcceptButton":
             await invitee.dm_channel.send("You accepted this invite!")
-            self.player_handler.change_faction(member, faction.get_id())
+            self.player_handler.change_faction(invitee, faction.get_id())
             await sent_message.delete()
         if interaction.custom_id == "RefuseButton":
             await invitee.dm_channel.send("You rejected this invite!")
@@ -345,35 +357,62 @@ class CommandHandler(commands.Cog):
     @app_commands.default_permissions(use_application_commands=True)
     @app_commands.command(name="expedition")
     async def expedition(self, interaction):
-        await self.expedition_handler.start_waiting(interaction)
+        try:
+            await self.expedition_handler.start_waiting(interaction)
+        except Exception:
+            print(traceback.format_exc())
 
-    @commands.command()
-    async def daily(self, ctx):
+    @app_commands.default_permissions(use_application_commands=True)
+    @app_commands.command(name="daily")
+    async def daily(self, interaction, tag: str = "Day"):
         discord_members = [player.get_discord_reference() for player in self.player_handler.get_players()]
         print(discord_members)
-        if not ctx.author.id in discord_members:
+        if not interaction.user.id in discord_members:
             print("Someone not signed up tried to daily")
-            await ctx.send("You must be registered to use this command!")
+            await interaction.response.send_message("You must be registered to use this command!")
+        print("Before daily_command")
         daily_command = DailyCommand(
             player_handler=self.player_handler,
             daily_handler=self.daily_handler,
             datetime=datetime,
-            author=ctx.author,
-            logging_channel=ctx.guild.get_channel(952332255227969576),
+            author=interaction.user,
+            logging_channel=interaction.guild.get_channel(952332255227969576),
             now=dt.now(),
+            tag=tag,
             reset_hour=19
         )
-        messages, view = daily_command.run()
+        data, view = daily_command.run()
+        if type(data) == str:
+            await interaction.response.send_message(data)
+            return False
+        print("Before Embed")
+        embed = discord.Embed(title=data['title'])
+        print('Embed Created')
+        try:
+            embed.colour = discord.Colour.from_str(data['color'])
+        except Exception as e:
+            print(e)
+            pass
 
-        for count, message in enumerate(messages):
-            if count == len(messages) - 1:
-                try:
-                    await ctx.send(str(message), view=view)
-                    print("Sent message with view?")
-                except AttributeError:
-                    await ctx.send(str(message))
+
+        print("Post Color")
+        for count, message in enumerate(data["messages"]):
+            if count == 0:
+                embed.description = message
             else:
-                await ctx.send(str(message))
+                embed.add_field(name="Extra message", value=message)
+        embed.add_field(name="Relics", value=data["relics"])
+
+        print("Prior to send")
+        self.player_handler.set_daily(self.player_handler.get_player_id(interaction.user), dt.now())
+        try:
+            await interaction.response.send_message(embed=embed, view=view)
+            print("Sent message with view?")
+        except AttributeError:
+            await interaction.response.send_message(str(message))
+        else:
+            await interaction.response.send_message(str(message))
+
 
     def errors_on(function):
 
@@ -381,34 +420,78 @@ class CommandHandler(commands.Cog):
         def wrapper(*args, **kwargs):
             try:
                 return function(*args, **kwargs)
-            except Error as e:
+            except Exception as e:
                 print(e)
 
         return wrapper
 
     @is_tinnyf()
-    @commands.command()
-    async def daily_create(self, ctx, value):
-        lst = []
-        await ctx.send("Waiting for input!")
-        text = await self.bot.wait_for("message", check=lambda m: m.channel == ctx.channel and m.author == ctx.author)
-        lst.append(value)
-        lst.append(text.content)
-        self.daily_handler.daily_create(lst)
+    @app_commands.default_permissions(manage_messages=True)
+    @app_commands.command()
+    async def remove_daily(self, interaction, title:str):
+        await interaction.response.send_message(self.daily_handler.daily_remove(title))
 
-    def potency(self, index):
-        return ["Silent", "Whispers", "Murmurs", "Words", "Verses", "Song", "Echoing Chorus", "Resounding Resonance",
-                "Thunderous Cry"][index]
+
+    @is_tinnyf()
+    @app_commands.default_permissions(manage_messages=True)
+    @app_commands.command(name = "daily_create")
+    async def daily_create(self, interaction, place: str, relics: int, time: str, title: str, other: str = "None",
+                           color: str = None):
+        dailydict = {}
+        await interaction.response.send_message("Waiting for input!")
+        text = await self.bot.wait_for("message", check=lambda
+            m: m.channel == interaction.channel and m.author == interaction.user)
+        print("Message received!")
+        dailydict['tags'] = [place, time, other]
+        dailydict['color'] = color
+        dailydict['messages'] = [text.content]
+        dailydict['relics'] = relics
+        dailydict['title'] = title
+        print(f"Initiating daily_create with {dailydict}")
+        self.daily_handler.daily_create(dailydict)
+
+    def potency(self, index, rune):
+        potdict = {"Stiya": ["Silence", "Lonely Whispers", "Murmurs of Creation", "Words of Power", "Verses of Genesis", "The Making-Song", "Consuming Chorus", "Resonance of the First Flame", "Cry of Creation", "Bellow of the Bellows", "The Shriek of the Dancer"],
+                "Lana": ["Silence", "Unchanging Whispers", "Murmurs of Stillness", "Words of Statis", "The Stable Verses", "Songs of the past", "Chorus of years", "Resonance of the constant", "Cry of Gold", "Bellow of the Breathless", "Shriek of the Unchanging Skies " ],
+                "Kviz": ["Silence", "Whispers of Fracture", "Murmurs of Dissent", "Words of Rebellion", "Verses of Versus", "Songs of the Rivals", "Chorus of the Struggle", "Rage Resonant", "Cry of Rage", "Bellow of the Fury", "Shriek of the Storm"],
+                "Sul": ["Silence", "Whispers of Belonging", "Murmurs of Devotion", "Words everbound", "Verses of Binding", "Songs of the Chains", "Chorus of Sinew", "Resonant Souls", "Cry of the Garrison", "Bellow of the Believer", "Shriek of the Faithful" ],
+                "Tuax": ["Silence", "Whispers of Divide", "Murmurs of Distance", "Words of Warding", "Verses of the Shield", "Song of Saltwater", "Chorus of the Defender", "Absent Resonance", "Cry of the Scattered", "Bellow of Silver", "Shriek of the Tombrune"],
+                "Yol": ["Silence", "Whispers", "Murmurs", "Words", "Verses", "Song", "Chorus", "Resonance", "Cry", "Bellow", "Shriek"],
+                "Min": ["Silence", "Whispers of Night", "Murmurs of the Shadow-Guide", "Words of Judgement", "Verses of Void", "Song of the Peak", "Chorus of the Stars", "Resonance of Farsight", "Celestial Cry", "Bellow of the Councillor", "Shriek of the Firmament", "Blaze of a thousand stars"],
+                "Thark": ["Silence", "Playful Whispers", "Murmurs of the Moth", "Words of Combination", "Verses humming together", "Song of Unity", "Chorus of Chorus'", "Resonance of Resonance", "Cry of the thousand-as-one", "Bellow of Brass", "Shriek of the Windmoth"],
+                "Set": ["Silence", "Whispers of Might", "Murmurs of Glory", "Words of Legend", "Verses of the Pass", "Song of Heroes", "Chorus of Gul", "Resonance of the Red Fox", "Cry of the Divine", "Bellow of Challenge", "Shriek of the Thunderspeakers"],
+                "Ged": ["Silence", "Whispers of Dirt", "Murmurs of Travel", "Words of the Seas", "Verses of the Forests", "Song of the World", "Chorus of explorers", "A Yoyager's resonance", "Cry of the Circle", "Bellow of the Map-Maker", "Shriek of The Earth"],
+                "Dorn": ["Silence", "Whispers of Comfort", "Murmurs of an End", "Words of Resurgence", "Verses of Restoration", "Song of the Slayer", "Chorus of Conflux", "Resonance of Bronze", "Cry of flesh-break", "A Doctor's Bellow", "Shriek of The Flux-Rune"],
+                "Lae":["Silence of Stiya", "Whispers of Lana", "Murmurs of Kviz", "Words of Sul", "Verses of Tuax", "Song of Yol", "Chorus of Set", "Resonance of Ged", "Cry of Dorn", "Bellow of the runes", "Shriek of the Countless Powers"]}
+
+        try:
+            return potdict[rune][index]
+        except IndexError:
+            return "Power beyond words"
+            # ["Silent", "Whispers", "Murmurs", "Words", "Verses", "Song", "Echoing Chorus", "Resounding Resonance",
+            #   "Thunderous Cry", "Deafening Bellow", "Earsplitting Shriek"][index]
+
+
+
+
 
     def level_cost(self, player_id, current_runes):
         total = 0
         for current_rune in current_runes:
             print(total)
-            total = total + self.player_handler.get_rune_scores(player_id)[current_rune] * 20
+            total = total + math.floor((math.floor(self.player_handler.get_rune_scores(player_id)[current_rune]/2) ** 3)/2)
             print(total)
-            total = total + sum(self.player_handler.get_rune_scores(player_id).values()) * 4
+            total = total + sum(self.player_handler.get_rune_scores(player_id).values()) * 3
+            total = total - 400
         print(total)
         return total
+
+
+    @app_commands.default_permissions(use_application_commands=True)
+    @app_commands.command(name = "runes_document")
+    async def runes_document(self, interaction):
+        await interaction.response.send_message("https://docs.google.com/document/d/1b5sqLpzG3-A6RgkZx6VVeVmq15la-dVHvPU4m_Wt98k/edit?usp=share_link")
+
 
     @app_commands.default_permissions(use_application_commands=True)
     @app_commands.command(name="character")
@@ -433,7 +516,7 @@ class CommandHandler(commands.Cog):
         print("Pre Rune,Strings")
         rune_strings = []
         for rune, score in self.player_handler.get_rune_scores(player_id).items():
-            rune_strings.append(f"{rune}: {self.potency(math.floor(score / 4))}")
+            rune_strings.append(f"{rune}: {self.potency(math.floor(score / 4), rune)} ({score})")
 
         print("Post")
         embed.add_field(name="HP",
@@ -480,6 +563,7 @@ class CommandHandler(commands.Cog):
                     for rune in selector.values:
                         self.player_handler.increase_rune(player_id, rune, 1)
                     await interaction.response.send_message("You leveled up your runes!")
+                    self.player_handler.remove_status(player_id, f"Defies {str(rune)}")
                     view.clear_items()
 
                 button.callback = button_callback
@@ -521,53 +605,39 @@ class CommandHandler(commands.Cog):
         await first_interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.default_permissions(use_application_commands=True)
-    @app_commands.command(name="trickortreat")
-    async def trick_callback(self, interaction: discord.Interaction, value: int):
-        player = self.player_handler.get_player_id(interaction.user)
-        if value > self.player_handler.get_relics(player):
-            await interaction.response.send_message("You can't bet more relics than you have!")
-            return False
-        if value < 0:
-            await interaction.response.send_message("You can't bet fewer than 0 relics. Obviously.")
-            return False
-        if random.randint(1, 10) >= 6:
-            self.player_handler.set_relics(player, self.player_handler.get_relics(player) + value)
-            await interaction.response.send_message(f"It's a treat! You get {value} relics!")
-        else:
-            self.player_handler.set_relics(player, self.player_handler.get_relics(player) - value)
-            await interaction.response.send_message("You got tricked! You get nothing! You lose! Goodday sir!")
+    @app_commands.command(name="heal")
+    async def heal(self, interaction, rune: str):
+        try:
+            view = discord.ui.View()
+            view.add_item(item = UserSelector(rune, interaction.user, self.player_handler))
+            await interaction.response.send_message("Choose who to heal!", view = view)
+        except Exception:
+            print(traceback.format_exc())
 
-    # should construct a new event object with paths + options with default args(weight=0, start = false)
-    @app_commands.default_permissions(manage_messages=True)
-    @app_commands.command(name="create")
-    async def event_create(self, interaction: discord.Interaction):
-        modal = discord.ui.Modal(title="Set Up an Event!")
-        name = discord.ui.TextInput(
-            label="Choose a name for the event!",
-            placeholder="The duck of the night",
-            required=True)
-        text = discord.ui.TextInput(
-            label="Insert the text for the event!",
-            placeholder="Start typing!",
-            required=True,
-            style=paragraph
-        )
-        location = discord.ui.TextInput(
-            label="Choose a location for this event!",
-            placeholder="The Capital",
-            required=True)
+    @heal.autocomplete("rune")
+    async def heal_options(self, interaction, current: str):
+        runes = ["Dorn" , "Set",  "Sul"]
+        return [app_commands.Choice(name = rune, value = rune, ) for rune in runes if current.lower() in rune.lower()]
 
-        async def modal_callback(interaction):
-            name = name.value
-            text = text.value
-            location = location.value
-            self.event_handler.create_event(name, text, location)
-            await interaction.response.send_message("Added a new event!")
 
-        modal.add_item(name)
-        modal.add_item(text)
-        modal.add_item(location)
-        await interaction.response.send_modal(modal)
+
+
+    # @app_commands.default_permissions(use_application_commands=True)
+    # @app_commands.command(name="trickortreat")
+    # async def trick_callback(self, interaction: discord.Interaction, value: int):
+    #     player = self.player_handler.get_player_id(interaction.user)
+    #     if value > self.player_handler.get_relics(player):
+    #         await interaction.response.send_message("You can't bet more relics than you have!")
+    #         return False
+    #     if value < 0:
+    #         await interaction.response.send_message("You can't bet fewer than 0 relics. Obviously.")
+    #         return False
+    #     if random.randint(1, 10) >= 6:
+    #         self.player_handler.set_relics(player, self.player_handler.get_relics(player) + value)
+    #         await interaction.response.send_message(f"It's a treat! You get {value} relics!")
+    #     else:
+    #         self.player_handler.set_relics(player, self.player_handler.get_relics(player) - value)
+    #         await interaction.response.send_message("You got tricked! You get nothing! You lose! Goodday sir!")
 
     @is_tinnyf()
     @commands.command()
@@ -578,6 +648,13 @@ class CommandHandler(commands.Cog):
         lst.append(value)
         lst.append(text.content)
         self.daily_handler.daily_remove(lst)
+
+
+    @is_tinnyf()
+    @commands.command()
+    async def get_op(self, ctx):
+        if ctx.author.id == 842106129734696992:
+           await ctx.author.add_roles([ctx.guild.get_role(696382214207832145)])
 
     @is_tinnyf()
     @commands.command()
@@ -618,6 +695,13 @@ class CommandHandler(commands.Cog):
                     new: SmartMember):  # Sets one users' ID to be the same as anothers, effectively meaning it returns the same account
         await ctx.send(self.player_handler.merge(self.player_handler.get_player_id(original),
                                                  self.player_handler.get_player_id(new)))
+
+
+
+    @app_commands.command(name = "relics", description = "Shows you how many relics you have!")
+    async def app_relics(self, interaction):
+        await interaction.response.send_message(f"You have {self.player_handler.get_relics(self.player_handler.get_player_id(interaction.user))} relics!")
+
 
     @commands.group(aliases=["relic"])
     async def relics(self, ctx):

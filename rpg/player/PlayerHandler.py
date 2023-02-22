@@ -149,11 +149,13 @@ class PlayerHandler(commands.Cog):
         self.save_csv(self.players, "Players")
 
     def set_hp(self, playerID, amount):
+        if amount > self.get_hp_max(playerID):
+            amount = self.get_hp_max(playerID)
         self.get_player(playerID).set_HP(amount)
         self.save_csv(self.players, "Players")
 
     def change_hp(self, playerID, amount):
-        self.get_player(playerID).set_HP(self.get_player(playerID).get_HP() + amount)
+        self.set_hp(playerID, self.get_player(playerID).get_HP() + amount)
         self.save_csv(self.players, "Players")
 
     def get_relics(self, playerID):
@@ -214,3 +216,6 @@ class PlayerHandler(commands.Cog):
 
     def get_status(self, player_ID):
         return self.get_player(player_ID).get_status()
+
+    def remove_status(self, player_ID, status):
+        self.get_player(player_ID).remove_status(status)

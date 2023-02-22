@@ -1,4 +1,5 @@
 import random
+import traceback
 
 import discord
 
@@ -16,14 +17,15 @@ class ExpeditionHandler:
         expedition.run(interaction)
 
     async def start_waiting(self, interaction):
-        title = random.choice(list(self.expedition_factory.expeditions.keys()))
-        print(title)
-        expedition = self.expedition_factory.expeditions[title]
-        print(expedition)
-        embed = discord.Embed(title="Expedition Waiting to start", description=title)
-        embed.add_field(name="Players", value="No players yet")
-        embed.add_field(name="Host", value=interaction.user.name)
-        print("Before View")
-        view = WaitingView(interaction, expedition, embed, self.player_handler, [])
-        print(interaction.message)
-        await interaction.response.send_message(embed=embed, view=view)
+        try:
+            expedition = self.expedition_factory.get_expedition()
+            print(expedition)
+            embed = discord.Embed(title="Expedition Waiting to start", description=expedition.title)
+            embed.add_field(name="Players", value="No players yet")
+            embed.add_field(name="Host", value=interaction.user.name)
+            print("Before View")
+            view = WaitingView(interaction, expedition, embed, self.player_handler)
+            print(interaction.message)
+            await interaction.response.send_message(embed=embed, view=view)
+        except Exception:
+            print(traceback.format_exc())

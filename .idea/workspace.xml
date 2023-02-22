@@ -5,34 +5,42 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="83d08248-ca8b-47cb-8e4b-579c4995abaf" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Channels.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CommandHandler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Council.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DailyButtons.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DailyCommand.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DailyHandler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Event.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EventHandler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ExpeditionButtons.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ExpeditionFactory.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Expeditions.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Faction.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FactionHandler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Games.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Lore" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/moderation/Color.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/moderation/ColorButton.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/moderation/WelcomeView.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/UI/User_Selector.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/expedition/Pages/Waystone.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/expedition/buttons/WaystoneGed.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/expedition/dilemma/dilemma.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/expedition/dilemma/waystone_ged_dilemma.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/expedition/views/waystone_ged_dilemma_view.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/expeditions/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/expeditions/into_rahamida.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/expeditions/tian_bay.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/rp/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/rp/character.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/rp/character_modal.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/rp/location.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/rp/rp.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpg/rp/rpdata.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Moderation.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Player.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PlayerHandler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Qotd.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Rules.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Trials.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Vote.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/VoteHandler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/factions" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/questions" beforeDir="false" afterPath="$PROJECT_DIR$/questions" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Players" beforeDir="false" afterPath="$PROJECT_DIR$/Players" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/features/Qotd.py" beforeDir="false" afterPath="$PROJECT_DIR$/features/Qotd.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/moderation/Moderation.py" beforeDir="false" afterPath="$PROJECT_DIR$/moderation/Moderation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/CommandHandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/CommandHandler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/daily/DailyCommand.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/daily/DailyCommand.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/daily/DailyHandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/daily/DailyHandler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/expedition/Expedition.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/expeditions/expedition.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/expedition/ExpeditionFactory.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/expedition/ExpeditionFactory.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/expedition/ExpeditionHandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/expedition/ExpeditionHandler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/expedition/Pages/EndPage.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/expedition/Pages/EndPage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/expedition/Pages/Page.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/expedition/Pages/Page.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/expedition/TestExpeditionAssembler.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/expedition/TestExpeditionAssembler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/expedition/buttons/LootButton.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/expedition/buttons/LootButton.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/expedition/views/WaitingView.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/expedition/views/WaitingView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/player/Player.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/player/Player.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpg/player/PlayerHandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/rpg/player/PlayerHandler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data/challenge.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/challenge.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data/council.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/council.json" afterDir="false" />
     </list>
@@ -40,6 +48,13 @@
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -61,6 +76,14 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Foster\Desktop\Colorpie Boy - Copy\rpg\expedition" />
+      <recent name="C:\Users\Foster\Desktop\Colorpie Boy - Copy\rpg\Expeditions\" />
+      <recent name="C:\Users\Foster\Desktop\Colorpie Boy - Copy\rpg\Expeditions\expedition" />
+      <recent name="C:\Users\Foster\Desktop\Colorpie Boy - Copy\rpg" />
+    </key>
+  </component>
   <component name="RunManager" selected="Python.Main">
     <configuration name="Expedition" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Colorpie Boy - Copy" />
@@ -149,7 +172,39 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/main" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="RECENT_FILTERS">
+      <map>
+        <entry key="Branch">
+          <value>
+            <list>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="main" />
+                </option>
+              </RecentGroup>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="HEAD" />
+                </option>
+              </RecentGroup>
+            </list>
           </value>
         </entry>
       </map>

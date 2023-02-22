@@ -13,4 +13,6 @@ class LootButton(discord.ui.Button):  # Only for end pages
         print(self.page)
         print(self.expedition.pages[self.page])
         await self.expedition.pages[self.page].loot(self.expedition, interaction)
+        self.disabled = True
+        self.view.stop()
 
