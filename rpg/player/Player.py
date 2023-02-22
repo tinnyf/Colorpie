@@ -20,7 +20,7 @@ class Player:
         if isinstance(daily, str):
             daily = datetime.strptime(daily, "%Y-%m-%d %H:%M:%S.%f")
         self.daily = daily
-        self.discord_reference = discord_reference
+        self.discord_reference = discord_reference #ID
         self.title = None
         self.runes = ["Stiya", "Lana", "Kviz", "Sul", "Tuax", "Yol",
                       "Min", "Thark", "Set", "Ged", "Dorn", "Lae"]
@@ -41,6 +41,9 @@ class Player:
     def get_id(self):
         return self.id
 
+    def set_rune(self, rune, amount):
+        self.get_rune_scores()[rune] = amount
+
     def get_HP_max(self):
         return self.HP_max
 
@@ -52,6 +55,11 @@ class Player:
 
     def set_HP(self, HP):
         self.HP = HP
+
+    def change_hp(self, HP):
+        self.HP = self.HP + HP
+        if self.HP > self.HP_max:
+            self.HP = self.HP_max
 
     def get_inventory(self):
         return self.inventory
@@ -111,6 +119,9 @@ class Player:
             self.status = ast.literal_eval(self.status)
         self.status.append(gained_status)
         print(self.status)
+
+    def remove_status(self, status):
+        self.status.remove(status)
 
     def set_last_daily(self, daily):
         self.last_daily = daily

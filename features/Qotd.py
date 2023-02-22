@@ -1,3 +1,5 @@
+import traceback
+
 import discord
 from discord import app_commands
 import discord.ext
@@ -29,27 +31,30 @@ class Qotd(commands.GroupCog, name = "qotd"):
 
     def __init__(self, bot):
         self.bot = bot
-        super().__init__()
         self.file_locations = {
-            "questions": "src/data/questions", #[ {user_id: int , truths[] }}
+            "questions": "src/data/questions",
         }
         self.questions = []
         for question in self.read_pickle("questions"):
+            print(question)
             self.questions.append(Question(**question))
+        super().__init__()
 
     def read_pickle(self, location):
         try:
             with open(self.file_locations[location], "rb") as f:
+                print(f" pickle load in read pickle {pickle.load(f)}")
                 return pickle.load(f)
         except EOFError:
             return {}
 
     async def save_pickle(self, data, location):
-        with open(location, "wb") as f:
+        with open(self.file_locations[location], "wb") as f:
             dehydrated = []
             for question in data:
                 dehydrated.append(question.__dict__)
                 pickle.dump(dehydrated, f)
+
 
 
     @app_commands.default_permissions(use_application_commands = True)
@@ -72,9 +77,13 @@ class Qotd(commands.GroupCog, name = "qotd"):
         question_input = discord.ui.TextInput(label = "Please add your question!", max_length = 1024)
 
         async def callback(interaction: discord.Interaction):
-            self.questions.append(Question(type, question_input.value))
-            await self.save_pickle(self.questions, self.file_locations["questions"])
-            await interaction.response.send_message("Thank you for adding a question, it's been saved!")
+            try:
+                self.questions.append(Question(type, question_input.value))
+                await self.save_pickle(self.questions, "questions")
+                await interaction.response.send_message("Thank you for adding a question, it's been saved!")
+            except Exception:
+                print(traceback.format_exc())
+
 
         modal.on_submit = callback
         modal.add_item(question_input)
@@ -85,15 +94,16 @@ class Qotd(commands.GroupCog, name = "qotd"):
     @app_commands.autocomplete(type = add_autocomplete)
     @app_commands.command(name = "post")
     async def post(self, interaction: discord.Interaction, type: str):
-        for question in self.questions:
-            if question.type == type:
-                new = question
-                self.questions.remove(question)
-                break
-
+        bucket = [question for question in self.questions if question.type.lower() == type.lower()]
+        new = bucket[0]
+        self.questions.remove(new)
+        print("Before embed")
+        print(type)
         embed = discord.Embed(title = f"{type} Question of the day!")
+        print("Printing new")
         embed.description = new.message
+        print("This step!")
         embed.set_footer(text = f"Please answer in Qotd-Answers! Keep discussion to general channels!")
-        await interaction.channel.send(embed=embed)
-        await interaction.response.send_message("Thank you for your message!", ephemeral = True)
-        await self.save_pickle(self.questions, self.file_locations["questions"])
+        print("before embed")
+        await interaction.response.send_message(embed=embed)
+        await self.save_pickle(self.questions, "questions")

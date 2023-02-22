@@ -1,9 +1,7 @@
 import asyncio
 
-import Expedition
+from rpg.expeditions import expedition
 import ExpeditionFactory
-import ExpeditionButtons
-
 
 players = ["Creevy", "Thomas", "Cara", "Ernie"]
 
@@ -26,7 +24,7 @@ async def startup():
     expedition_factory = ExpeditionFactory.ExpeditionFactory()
     print (expedition_factory)
     print (expedition_factory.expeditions)
-    expeditions = [Expedition.Expedition(title = key, pages = expedition, players = players, host = "Creevy") for key, expedition in expedition_factory.expeditions.items()]
+    expeditions = [Expedition.Expedition(title = key, pages = expedition, players = players, host ="Creevy") for key, expedition in expedition_factory.expeditions.items()]
     for expedition in expeditions:
         print(expedition.pages)
     await tests(expeditions)

@@ -1,10 +1,12 @@
+import traceback
+
 import discord
 
-from rpg.expedition.Expedition import Expedition
+from rpg.expeditions.expedition import Expedition
 
 
 class WaitingView(discord.ui.View):
-    def __init__(self, interaction, expedition, embed, player_handler, players):
+    def __init__(self, interaction, expedition, embed, player_handler, players = []):
         self.original_interaction = interaction
         self.player_handler = player_handler
         self.host = player_handler.get_player_id(interaction.user)
@@ -15,9 +17,11 @@ class WaitingView(discord.ui.View):
 
     @discord.ui.button(label="Start the Expedition")
     async def start_button(self, interaction: discord.Interaction, button):
-        expedition = Expedition(str(self.embed.description), self.expedition, host=self.host, players=self.players)
-        await expedition.run(interaction)
-
+        try:
+            self.expedition.set_up_players(self.players, self.host)
+            await self.expedition.run(interaction)
+        except Exception:
+            print(traceback.format_exc())
     @discord.ui.button(label="Join the Expedition")
     async def join_button(self, interaction: discord.Interaction, button):
         print(self.player_handler.get_player_id(interaction.user))
